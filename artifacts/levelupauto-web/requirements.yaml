@@ -1,0 +1,21 @@
+packages:
+  "framer-motion": "For page transitions and smooth UI animations"
+  "clsx": "For conditional class name merging"
+  "tailwind-merge": "For merging tailwind classes safely"
+  "lucide-react": "For UI icons"
+  "react-hook-form": "For form state management"
+  "@hookform/resolvers": "For Zod schema validation in forms"
+  "zod": "For strict form validation"
+  "date-fns": "For date formatting"
+
+images:
+  - path: "artifacts/levelupauto-web/public/images/carbon-fiber-bg.png"
+    description: "Seamless abstract dark carbon fiber texture pattern, extremely subtle, very low contrast, luxury automotive feel"
+    aspect_ratio: "16:9"
+  - path: "artifacts/levelupauto-web/public/images/tire-marks.png"
+    description: "Abstract tire mark graphic, bright red, dynamic and fast feeling, isolated on transparent background"
+    aspect_ratio: "16:9"
+
+notes:
+  - API is fully defined in the OpenAPI spec and generated hooks are available at @workspace/api-client-react.
+  - The app uses a forced dark mode aesthetic with vibrant red/orange accents to fit the high-energy automotive brand.

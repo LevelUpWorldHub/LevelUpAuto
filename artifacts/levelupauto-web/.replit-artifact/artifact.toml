@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "LevelUpAuto Website"
+version = "1.0.0"
+id = "artifacts/levelupauto-web"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25836
+
+[services.development]
+run = "pnpm --filter @workspace/levelupauto-web run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/levelupauto-web", "run", "build" ]
+publicDir = "artifacts/levelupauto-web/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25836"
+BASE_PATH = "/"
