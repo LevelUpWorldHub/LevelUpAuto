@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: Api
-  version: 0.1.0
-  description: LevelUpAuto API specification
+  version: 0.2.0
+  description: Alset + LevelUpAuto unified API specification
 servers:
   - url: /api
     description: Base API path
@@ -10,20 +10,34 @@ tags:
   - name: health
     description: Health operations
   - name: services
-    description: Auto services offered
+    description: Auto services offered (LevelUpAuto)
   - name: appointments
-    description: Appointment booking
+    description: Appointment booking (LevelUpAuto)
   - name: testimonials
-    description: Customer testimonials
+    description: Customer testimonials (LevelUpAuto)
   - name: contact
-    description: Contact form
+    description: Contact form (LevelUpAuto)
+  - name: auth
+    description: Authentication (Alset)
+  - name: vehicles
+    description: Tesla vehicle management (Alset)
+  - name: claims
+    description: Insurance claims (Alset)
+  - name: work-orders
+    description: Shop work orders (Alset)
+  - name: towing
+    description: Towing dispatch (Alset)
+  - name: rentals
+    description: Loaner/rental booking (Alset)
+  - name: users
+    description: User/role management (Alset)
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -31,6 +45,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ─── LevelUpAuto ───────────────────────────────────────────────────────────
 
   /services:
     get:
@@ -113,7 +129,7 @@ paths:
               $ref: "#/components/schemas/ContactFormBody"
       responses:
         "200":
-          description: Message submitted successfully
+          description: Message submitted
           content:
             application/json:
               schema:
@@ -125,6 +141,382 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  # ─── Alset Auth ────────────────────────────────────────────────────────────
+
+  /alset/auth/login:
+    post:
+      operationId: alsetLogin
+      tags: [auth]
+      summary: Login to Alset platform
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AlsetLoginBody"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlsetLoginResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /alset/auth/me:
+    get:
+      operationId: alsetGetMe
+      tags: [auth]
+      summary: Get current user info
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlsetUser"
+
+  # ─── Alset Vehicles ────────────────────────────────────────────────────────
+
+  /alset/vehicles:
+    get:
+      operationId: listVehicles
+      tags: [vehicles]
+      summary: List vehicles for current owner
+      responses:
+        "200":
+          description: List of vehicles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Vehicle"
+    post:
+      operationId: createVehicle
+      tags: [vehicles]
+      summary: Register a Tesla vehicle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateVehicleBody"
+      responses:
+        "201":
+          description: Vehicle registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vehicle"
+
+  /alset/vehicles/{id}:
+    get:
+      operationId: getVehicle
+      tags: [vehicles]
+      summary: Get a vehicle by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Vehicle details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vehicle"
+
+  # ─── Alset Claims ──────────────────────────────────────────────────────────
+
+  /alset/claims:
+    get:
+      operationId: listClaims
+      tags: [claims]
+      summary: List insurance claims
+      responses:
+        "200":
+          description: List of claims
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Claim"
+    post:
+      operationId: createClaim
+      tags: [claims]
+      summary: Submit a new insurance claim
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClaimBody"
+      responses:
+        "201":
+          description: Claim submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Claim"
+
+  /alset/claims/{id}:
+    get:
+      operationId: getClaim
+      tags: [claims]
+      summary: Get a claim by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Claim details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Claim"
+    patch:
+      operationId: updateClaim
+      tags: [claims]
+      summary: Update claim status or details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateClaimBody"
+      responses:
+        "200":
+          description: Claim updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Claim"
+
+  # ─── Alset Work Orders ─────────────────────────────────────────────────────
+
+  /alset/work-orders:
+    get:
+      operationId: listWorkOrders
+      tags: [work-orders]
+      summary: List work orders
+      responses:
+        "200":
+          description: List of work orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkOrder"
+    post:
+      operationId: createWorkOrder
+      tags: [work-orders]
+      summary: Create a new work order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWorkOrderBody"
+      responses:
+        "201":
+          description: Work order created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrder"
+
+  /alset/work-orders/{id}:
+    get:
+      operationId: getWorkOrder
+      tags: [work-orders]
+      summary: Get a work order by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Work order details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrder"
+    patch:
+      operationId: updateWorkOrder
+      tags: [work-orders]
+      summary: Update work order status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateWorkOrderBody"
+      responses:
+        "200":
+          description: Work order updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrder"
+
+  # ─── Alset Towing ──────────────────────────────────────────────────────────
+
+  /alset/towing:
+    get:
+      operationId: listTowingJobs
+      tags: [towing]
+      summary: List towing jobs
+      responses:
+        "200":
+          description: List of towing jobs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TowingJob"
+    post:
+      operationId: createTowingJob
+      tags: [towing]
+      summary: Request a tow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTowingJobBody"
+      responses:
+        "201":
+          description: Towing job created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TowingJob"
+
+  /alset/towing/{id}:
+    patch:
+      operationId: updateTowingJob
+      tags: [towing]
+      summary: Update towing job status/assignment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTowingJobBody"
+      responses:
+        "200":
+          description: Towing job updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TowingJob"
+
+  # ─── Alset Rentals ─────────────────────────────────────────────────────────
+
+  /alset/rentals:
+    get:
+      operationId: listRentals
+      tags: [rentals]
+      summary: List rental/loaner bookings
+      responses:
+        "200":
+          description: List of rentals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Rental"
+    post:
+      operationId: createRental
+      tags: [rentals]
+      summary: Book a loaner/rental vehicle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRentalBody"
+      responses:
+        "201":
+          description: Rental booked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rental"
+
+  /alset/rentals/{id}:
+    patch:
+      operationId: updateRental
+      tags: [rentals]
+      summary: Update rental status (return, cancel)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRentalBody"
+      responses:
+        "200":
+          description: Rental updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rental"
+
+  /alset/dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [users]
+      summary: Get dashboard KPI stats for current role
+      responses:
+        "200":
+          description: Dashboard statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
 components:
   schemas:
     HealthStatus:
@@ -132,8 +524,9 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
+
+    # ─── LevelUpAuto Schemas ──────────────────────────────────────────────────
 
     Service:
       type: object
@@ -154,13 +547,7 @@ components:
         imageUrl:
           type: string
           nullable: true
-      required:
-        - id
-        - name
-        - description
-        - price
-        - durationMinutes
-        - category
+      required: [id, name, description, price, durationMinutes, category]
 
     CreateAppointmentBody:
       type: object
@@ -185,15 +572,7 @@ components:
         notes:
           type: string
           nullable: true
-      required:
-        - customerName
-        - customerEmail
-        - customerPhone
-        - serviceId
-        - vehicleMake
-        - vehicleModel
-        - vehicleYear
-        - preferredDate
+      required: [customerName, customerEmail, customerPhone, serviceId, vehicleMake, vehicleModel, vehicleYear, preferredDate]
 
     Appointment:
       type: object
@@ -228,19 +607,7 @@ components:
         createdAt:
           type: string
           format: date-time
-      required:
-        - id
-        - customerName
-        - customerEmail
-        - customerPhone
-        - serviceId
-        - serviceName
-        - vehicleMake
-        - vehicleModel
-        - vehicleYear
-        - preferredDate
-        - status
-        - createdAt
+      required: [id, customerName, customerEmail, customerPhone, serviceId, serviceName, vehicleMake, vehicleModel, vehicleYear, preferredDate, status, createdAt]
 
     Testimonial:
       type: object
@@ -260,13 +627,7 @@ components:
         createdAt:
           type: string
           format: date-time
-      required:
-        - id
-        - customerName
-        - rating
-        - comment
-        - serviceName
-        - createdAt
+      required: [id, customerName, rating, comment, serviceName, createdAt]
 
     ContactFormBody:
       type: object
@@ -280,23 +641,516 @@ components:
           nullable: true
         message:
           type: string
-      required:
-        - name
-        - email
-        - message
+      required: [name, email, message]
 
     SuccessResponse:
       type: object
       properties:
         message:
           type: string
-      required:
-        - message
+      required: [message]
 
     ErrorResponse:
       type: object
       properties:
         error:
           type: string
-      required:
-        - error
+      required: [error]
+
+    # ─── Alset Schemas ────────────────────────────────────────────────────────
+
+    AlsetLoginBody:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required: [email, password]
+
+    AlsetLoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/AlsetUser"
+      required: [token, user]
+
+    AlsetUser:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          enum: [owner, shop, insurer, towing, rental, admin]
+        organizationId:
+          type: integer
+          nullable: true
+        organizationName:
+          type: string
+          nullable: true
+      required: [id, email, name, role]
+
+    Vehicle:
+      type: object
+      properties:
+        id:
+          type: integer
+        ownerId:
+          type: integer
+        vin:
+          type: string
+        model:
+          type: string
+          enum: [Model S, Model 3, Model X, Model Y, Cybertruck, Roadster]
+        year:
+          type: integer
+        color:
+          type: string
+        licensePlate:
+          type: string
+        mileage:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, ownerId, vin, model, year, color, licensePlate, createdAt]
+
+    CreateVehicleBody:
+      type: object
+      properties:
+        vin:
+          type: string
+        model:
+          type: string
+          enum: [Model S, Model 3, Model X, Model Y, Cybertruck, Roadster]
+        year:
+          type: integer
+        color:
+          type: string
+        licensePlate:
+          type: string
+        mileage:
+          type: integer
+          nullable: true
+      required: [vin, model, year, color, licensePlate]
+
+    Claim:
+      type: object
+      properties:
+        id:
+          type: integer
+        claimNumber:
+          type: string
+        vehicleId:
+          type: integer
+        vehicleVin:
+          type: string
+          nullable: true
+        vehicleModel:
+          type: string
+          nullable: true
+        ownerId:
+          type: integer
+        ownerName:
+          type: string
+          nullable: true
+        insurerId:
+          type: integer
+          nullable: true
+        insurerName:
+          type: string
+          nullable: true
+        workOrderId:
+          type: integer
+          nullable: true
+        incidentDate:
+          type: string
+          format: date
+        incidentDescription:
+          type: string
+        estimatedDamage:
+          type: number
+          nullable: true
+        approvedAmount:
+          type: number
+          nullable: true
+        status:
+          type: string
+          enum: [submitted, under-review, approved, denied, paid, closed]
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, claimNumber, vehicleId, ownerId, incidentDate, incidentDescription, status, priority, createdAt, updatedAt]
+
+    CreateClaimBody:
+      type: object
+      properties:
+        vehicleId:
+          type: integer
+        incidentDate:
+          type: string
+          format: date
+        incidentDescription:
+          type: string
+        estimatedDamage:
+          type: number
+          nullable: true
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+        notes:
+          type: string
+          nullable: true
+      required: [vehicleId, incidentDate, incidentDescription, priority]
+
+    UpdateClaimBody:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [submitted, under-review, approved, denied, paid, closed]
+        approvedAmount:
+          type: number
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        insurerId:
+          type: integer
+          nullable: true
+        workOrderId:
+          type: integer
+          nullable: true
+
+    WorkOrder:
+      type: object
+      properties:
+        id:
+          type: integer
+        workOrderNumber:
+          type: string
+        claimId:
+          type: integer
+          nullable: true
+        vehicleId:
+          type: integer
+        vehicleVin:
+          type: string
+          nullable: true
+        vehicleModel:
+          type: string
+          nullable: true
+        shopId:
+          type: integer
+          nullable: true
+        shopName:
+          type: string
+          nullable: true
+        technicianName:
+          type: string
+          nullable: true
+        description:
+          type: string
+        laborHours:
+          type: number
+          nullable: true
+        partsTotal:
+          type: number
+          nullable: true
+        laborRate:
+          type: number
+          nullable: true
+        totalCost:
+          type: number
+          nullable: true
+        status:
+          type: string
+          enum: [draft, assigned, in-progress, awaiting-parts, completed, invoiced]
+        startDate:
+          type: string
+          format: date
+          nullable: true
+        completionDate:
+          type: string
+          format: date
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, workOrderNumber, vehicleId, description, status, createdAt, updatedAt]
+
+    CreateWorkOrderBody:
+      type: object
+      properties:
+        claimId:
+          type: integer
+          nullable: true
+        vehicleId:
+          type: integer
+        description:
+          type: string
+        laborHours:
+          type: number
+          nullable: true
+        partsTotal:
+          type: number
+          nullable: true
+        laborRate:
+          type: number
+          nullable: true
+        startDate:
+          type: string
+          format: date
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+      required: [vehicleId, description]
+
+    UpdateWorkOrderBody:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [draft, assigned, in-progress, awaiting-parts, completed, invoiced]
+        technicianName:
+          type: string
+          nullable: true
+        laborHours:
+          type: number
+          nullable: true
+        partsTotal:
+          type: number
+          nullable: true
+        completionDate:
+          type: string
+          format: date
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+
+    TowingJob:
+      type: object
+      properties:
+        id:
+          type: integer
+        jobNumber:
+          type: string
+        vehicleId:
+          type: integer
+        vehicleVin:
+          type: string
+          nullable: true
+        vehicleModel:
+          type: string
+          nullable: true
+        requestedById:
+          type: integer
+        pickupAddress:
+          type: string
+        dropoffAddress:
+          type: string
+        requestedAt:
+          type: string
+          format: date-time
+        assignedCompanyId:
+          type: integer
+          nullable: true
+        assignedCompanyName:
+          type: string
+          nullable: true
+        driverName:
+          type: string
+          nullable: true
+        estimatedArrival:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          type: string
+          enum: [requested, assigned, en-route, arrived, completed, cancelled]
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, jobNumber, vehicleId, requestedById, pickupAddress, dropoffAddress, requestedAt, status, createdAt]
+
+    CreateTowingJobBody:
+      type: object
+      properties:
+        vehicleId:
+          type: integer
+        pickupAddress:
+          type: string
+        dropoffAddress:
+          type: string
+        notes:
+          type: string
+          nullable: true
+      required: [vehicleId, pickupAddress, dropoffAddress]
+
+    UpdateTowingJobBody:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [requested, assigned, en-route, arrived, completed, cancelled]
+        assignedCompanyId:
+          type: integer
+          nullable: true
+        driverName:
+          type: string
+          nullable: true
+        estimatedArrival:
+          type: string
+          format: date-time
+          nullable: true
+
+    Rental:
+      type: object
+      properties:
+        id:
+          type: integer
+        bookingNumber:
+          type: string
+        claimId:
+          type: integer
+          nullable: true
+        ownerId:
+          type: integer
+        ownerName:
+          type: string
+          nullable: true
+        rentalCompanyId:
+          type: integer
+          nullable: true
+        rentalCompanyName:
+          type: string
+          nullable: true
+        vehicleType:
+          type: string
+          enum: [sedan, suv, truck, electric, luxury]
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+          nullable: true
+        dailyRate:
+          type: number
+          nullable: true
+        totalCost:
+          type: number
+          nullable: true
+        status:
+          type: string
+          enum: [requested, confirmed, active, returned, cancelled]
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, bookingNumber, ownerId, vehicleType, startDate, status, createdAt]
+
+    CreateRentalBody:
+      type: object
+      properties:
+        claimId:
+          type: integer
+          nullable: true
+        vehicleType:
+          type: string
+          enum: [sedan, suv, truck, electric, luxury]
+        startDate:
+          type: string
+          format: date
+        notes:
+          type: string
+          nullable: true
+      required: [vehicleType, startDate]
+
+    UpdateRentalBody:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [requested, confirmed, active, returned, cancelled]
+        endDate:
+          type: string
+          format: date
+          nullable: true
+        dailyRate:
+          type: number
+          nullable: true
+
+    DashboardStats:
+      type: object
+      properties:
+        totalClaims:
+          type: integer
+        openClaims:
+          type: integer
+        totalWorkOrders:
+          type: integer
+        activeWorkOrders:
+          type: integer
+        pendingTowingJobs:
+          type: integer
+        activeRentals:
+          type: integer
+        totalVehicles:
+          type: integer
+        recentActivity:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityItem"
+      required: [totalClaims, openClaims, totalWorkOrders, activeWorkOrders, pendingTowingJobs, activeRentals, totalVehicles, recentActivity]
+
+    ActivityItem:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [claim, work-order, towing, rental]
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: string
+      required: [id, type, message, timestamp, status]

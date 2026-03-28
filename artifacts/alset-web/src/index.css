@@ -1,0 +1,180 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+@import "tw-animate-css";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-gold: hsl(var(--gold));
+  --color-gold-bright: hsl(var(--gold-bright));
+  --color-gold-dim: hsl(var(--gold-dim));
+  --color-silver: hsl(var(--silver));
+  --font-sans: 'Inter', sans-serif;
+  --font-display: 'Space Grotesk', sans-serif;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --background: 220 30% 4%;
+  --foreground: 40 15% 90%;
+  --card: 220 28% 7%;
+  --card-foreground: 40 15% 90%;
+  --primary: 42 88% 52%;
+  --primary-foreground: 220 30% 4%;
+  --secondary: 220 25% 11%;
+  --secondary-foreground: 40 15% 75%;
+  --muted: 220 25% 10%;
+  --muted-foreground: 220 12% 48%;
+  --accent: 42 88% 52%;
+  --accent-foreground: 220 30% 4%;
+  --destructive: 0 70% 50%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 220 22% 13%;
+  --input: 220 22% 10%;
+  --ring: 42 88% 52%;
+  --radius: 0.75rem;
+  --gold: 42 88% 52%;
+  --gold-bright: 48 100% 58%;
+  --gold-dim: 38 55% 38%;
+  --silver: 210 13% 62%;
+  color-scheme: dark;
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  body { @apply font-sans antialiased bg-background text-foreground; }
+  h1, h2, h3, h4, h5, h6 { font-family: var(--font-display); @apply tracking-tight font-semibold; }
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: hsl(var(--gold)/0.2); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--gold)/0.4); }
+
+/* Buttons */
+.btn-gold {
+  @apply inline-flex items-center justify-center gap-2 font-semibold rounded-xl transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none active:scale-[0.97] focus:outline-none;
+  background: linear-gradient(135deg, hsl(var(--gold-bright)) 0%, hsl(var(--gold)) 100%);
+  color: hsl(220 30% 4%);
+  @apply shadow-lg px-5 py-2.5 text-sm;
+  box-shadow: 0 4px 20px hsl(var(--gold)/0.3);
+}
+.btn-gold:hover { filter: brightness(1.08); box-shadow: 0 6px 28px hsl(var(--gold)/0.4); }
+.btn-outline {
+  @apply inline-flex items-center justify-center gap-2 font-semibold rounded-xl transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none active:scale-[0.97] focus:outline-none;
+  @apply border border-border hover:border-gold/40 hover:bg-gold/[0.05] text-foreground px-5 py-2.5 text-sm;
+}
+.btn-ghost {
+  @apply inline-flex items-center justify-center gap-2 font-semibold rounded-xl transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none active:scale-[0.97] focus:outline-none;
+  @apply hover:bg-white/[0.05] text-muted-foreground hover:text-foreground px-4 py-2 text-sm;
+}
+.btn-danger {
+  @apply inline-flex items-center justify-center gap-2 font-semibold rounded-xl transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none active:scale-[0.97] focus:outline-none;
+  @apply bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/25 px-5 py-2.5 text-sm;
+}
+
+/* Glass */
+.glass { background: hsl(var(--card)/0.7); @apply backdrop-blur-xl border border-white/[0.05]; }
+.glass-gold { background: linear-gradient(135deg, hsl(var(--gold)/0.07) 0%, hsl(var(--card)) 100%); @apply backdrop-blur-xl border border-gold/20; }
+
+/* Gold gradient text */
+.text-gradient-gold {
+  background: linear-gradient(135deg, hsl(var(--gold-bright)) 0%, hsl(var(--gold)) 55%, hsl(var(--gold-dim)) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.text-gradient-silver {
+  background: linear-gradient(135deg, #E8EAF0 0%, #9BA8B5 55%, #6B7A8D 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.text-gold { color: hsl(var(--gold)); }
+.text-silver { color: hsl(var(--silver)); }
+
+/* 4D Card */
+.card-4d {
+  background: hsl(var(--card));
+  @apply rounded-2xl overflow-hidden relative border border-border;
+  box-shadow: 0 1px 0 0 hsl(var(--gold)/0.08) inset, 0 -1px 0 0 rgba(0,0,0,0.35) inset, 0 20px 40px -10px rgba(0,0,0,0.45);
+  transition: box-shadow 0.28s ease, transform 0.28s ease, border-color 0.28s ease;
+}
+.card-4d:hover {
+  @apply border-gold/25;
+  box-shadow: 0 1px 0 0 hsl(var(--gold)/0.18) inset, 0 -1px 0 0 rgba(0,0,0,0.4) inset, 0 30px 60px -10px rgba(0,0,0,0.55), 0 0 25px 0 hsl(var(--gold)/0.06);
+  transform: translateY(-2px);
+}
+.card-gold { background: linear-gradient(145deg, hsl(var(--gold)/0.08) 0%, hsl(var(--card)) 60%); border-top: 1px solid hsl(var(--gold)/0.28) !important; }
+.card-metric { background: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(220 28% 5%) 100%); }
+
+/* Nav */
+.nav-link { @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-all duration-200 cursor-pointer; }
+.nav-link.active { color: hsl(var(--gold)); background: hsl(var(--gold)/0.1); border: 1px solid hsl(var(--gold)/0.18); }
+.nav-link .icon { @apply w-[18px] h-[18px] flex-shrink-0; }
+.nav-link.active .icon { color: hsl(var(--gold)); }
+
+/* Status badges — base + variants (no @apply of custom classes) */
+.badge,
+.badge-gold, .badge-green, .badge-amber, .badge-red,
+.badge-blue, .badge-purple, .badge-silver {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border;
+}
+.badge-gold   { background: hsl(var(--gold)/0.12);    color: hsl(var(--gold));    border-color: hsl(var(--gold)/0.25); }
+.badge-green  { @apply bg-emerald-500/10 text-emerald-400 border-emerald-500/25; }
+.badge-amber  { @apply bg-amber-500/10  text-amber-400  border-amber-500/25; }
+.badge-red    { @apply bg-red-500/10    text-red-400    border-red-500/25; }
+.badge-blue   { @apply bg-blue-500/10   text-blue-400   border-blue-500/25; }
+.badge-purple { @apply bg-purple-500/10 text-purple-400 border-purple-500/25; }
+.badge-silver { @apply bg-white/[0.08]  text-white/60   border-white/[0.10]; }
+
+/* Table */
+.data-table { @apply w-full text-sm; }
+.data-table thead { @apply border-b border-border; }
+.data-table thead th { @apply px-4 py-3 text-left text-[11px] font-bold text-muted-foreground uppercase tracking-widest; }
+.data-table tbody tr { @apply border-b border-border/40 hover:bg-white/[0.02] transition-colors; }
+.data-table tbody td { @apply px-4 py-3.5; }
+
+/* Form */
+.field-label { @apply block text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5; }
+.field-input,
+.field-textarea,
+.field-select {
+  @apply w-full bg-muted/40 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-gold/35 focus:border-gold/30 transition-all duration-200;
+}
+.field-textarea { @apply resize-none; }
+.field-select { @apply appearance-none cursor-pointer; }
+
+/* Progress */
+.progress { @apply h-1 rounded-full bg-muted overflow-hidden; }
+.progress-bar { @apply h-full rounded-full bg-gradient-to-r from-gold-dim to-gold transition-all duration-700; }
+
+/* Dividers */
+.divider { @apply border-t border-border; }
+.divider-gold { @apply border-t border-gold/15; }
+
+/* Pulse */
+.dot-pulse { @apply w-2 h-2 rounded-full relative; }
+.dot-pulse::after { content: ''; @apply absolute inset-0 rounded-full animate-ping opacity-75; }
+
+/* Ambient glow bg */
+.amb { position: relative; }
+.amb::before { content: ''; position: fixed; top: -10%; left: -15%; width: 55%; height: 55%; background: radial-gradient(ellipse, hsl(var(--gold)/0.035) 0%, transparent 70%); pointer-events: none; z-index: 0; }
+.amb::after  { content: ''; position: fixed; bottom: -15%; right: -10%; width: 45%; height: 50%; background: radial-gradient(ellipse, hsl(210 100% 56%/0.025) 0%, transparent 70%); pointer-events: none; z-index: 0; }

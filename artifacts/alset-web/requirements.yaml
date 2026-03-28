@@ -1,0 +1,17 @@
+packages:
+  "framer-motion": "For premium page transitions and micro-interactions"
+  "recharts": "For dashboard KPI data visualization"
+  "date-fns": "For formatting timestamps beautifully"
+  "clsx": "Utility for constructing className strings"
+  "tailwind-merge": "Utility function to efficiently merge Tailwind CSS classes"
+
+images:
+  - path: "artifacts/alset-web/public/images/login-bg.png"
+    description: "Abstract luxury automotive concept, sleek sleek aerodynamic lines, electric cyan neon accents, deep charcoal and obsidian background, 3d render, dark mode, premium SaaS aesthetic"
+    aspect_ratio: "16:9"
+  - path: "artifacts/alset-web/public/images/logo-mark.png"
+    description: "Minimalist modern letter A logo mark, electric cyan gradient, dark background, sharp geometric, premium automotive brand, sleek"
+    aspect_ratio: "1:1"
+
+notes:
+  - Global fetch interceptor implemented in auth context to inject JWT Bearer token into all generated orval API requests.
