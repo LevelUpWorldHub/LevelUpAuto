@@ -10,6 +10,8 @@ import Claims from "./pages/claims";
 import WorkOrders from "./pages/work-orders";
 import Towing from "./pages/towing";
 import Rentals from "./pages/rentals";
+import Accounting from "./pages/accounting";
+import CustomerPortal from "./pages/customer-portal";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -20,7 +22,6 @@ const queryClient = new QueryClient({
   },
 });
 
-// Auth Guard Component
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, isLoading } = useAuth();
   const [, setLocation] = useLocation();
@@ -63,6 +64,8 @@ function Router() {
       <Route path="/work-orders"><ProtectedRoute component={WorkOrders} /></Route>
       <Route path="/towing"><ProtectedRoute component={Towing} /></Route>
       <Route path="/rentals"><ProtectedRoute component={Rentals} /></Route>
+      <Route path="/accounting"><ProtectedRoute component={Accounting} /></Route>
+      <Route path="/customer-portal"><ProtectedRoute component={CustomerPortal} /></Route>
       <Route path="/" component={RootRedirect} />
       <Route>
         {() => (

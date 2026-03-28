@@ -4,18 +4,35 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, Button, Modal, FormField, Input, Select, Textarea, StatusBadge, StatCard, SectionHeader, EmptyState, SkeletonCard, Badge, ProgressBar } from "@/components/ui-elements";
 import { cn } from "@/components/ui-elements";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
-import { Plus, Wrench, Cpu, Scan, Zap, BarChart3, CheckCircle, Clock, DollarSign, User, AlertTriangle, Shield, Activity } from "lucide-react";
+import { Plus, Wrench, Cpu, Scan, Zap, BarChart3, CheckCircle, Clock, DollarSign, User, AlertTriangle, Shield, Activity, ChevronDown, ChevronUp, Camera, Radio, Satellite } from "lucide-react";
 
-const DIAG_TOOLS = [
-  { name: "Tchek AI Vision",    status: "active",  color: "text-blue-400",    bg: "bg-blue-500/10",    icon: Scan   },
-  { name: "Tractable AI Est.",  status: "active",  color: "text-purple-400",  bg: "bg-purple-500/10",  icon: Cpu    },
-  { name: "Celette Naja 3D",    status: "standby", color: "text-gold",        bg: "bg-gold/10",        icon: Zap    },
-  { name: "Car-O-Tronic Vision2",status:"active",  color: "text-amber-400",   bg: "bg-amber-500/10",   icon: BarChart3 },
-  { name: "UVeye Scanner",      status: "standby", color: "text-emerald-400", bg: "bg-emerald-500/10", icon: Scan   },
-  { name: "ADAS Calibration",   status: "needed",  color: "text-red-400",     bg: "bg-red-500/10",     icon: Shield },
+// ─── Repair tech data ────────────────────────────────────────────────────────
+
+const AI_DIAG_TOOLS = [
+  { name: "Tractable AI",    subtitle: "Damage estimation",    confidence: 94, color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/20" },
+  { name: "Tchek AI Vision", subtitle: "Photo-based analysis", confidence: 91, color: "text-blue-400",   bg: "bg-blue-500/10",   border: "border-blue-500/20" },
+  { name: "UVeye Scanner",   subtitle: "Under-vehicle scan",   confidence: 88, color: "text-emerald-400",bg: "bg-emerald-500/10",border: "border-emerald-500/20" },
 ];
+
+const FRAME_TOOLS = [
+  { name: "Celette NAJA 3D",      status: "Digital Twin Active", icon: Satellite, color: "text-gold",        bg: "bg-gold/10",         border: "border-gold/20" },
+  { name: "Car-O-Tronic Vision2", status: "Measured",            icon: Scan,      color: "text-blue-400",   bg: "bg-blue-500/10",     border: "border-blue-500/20" },
+  { name: "Eagle Laser Systems",  status: "Ready",               icon: Zap,       color: "text-amber-400",  bg: "bg-amber-500/10",    border: "border-amber-500/20" },
+];
+
+const ADAS_SENSORS = [
+  { sensor: "Autopilot Camera System",  status: "pending" },
+  { sensor: "Ultrasonic Sensor Array",  status: "calibrated" },
+  { sensor: "Forward Radar Module",     status: "calibrated" },
+  { sensor: "Autopilot Side Cameras",   status: "pending" },
+  { sensor: "Reverse Camera",           status: "not-required" },
+  { sensor: "FSD Vision Processor",     status: "pending" },
+];
+
+const REPAIR_MATERIALS  = ["Tesla OEM Panel", "PPG Envirobase Primer", "Waterborne Basecoat", "High-Solid Clear"];
+const REPAIR_TECHNIQUES = ["SMART Repair", "3D Frame Alignment", "ADAS Post-Repair", "Color Spectrometer Match"];
 
 const STATUS_STEPS = ["pending", "assigned", "in-progress", "awaiting-parts", "completed"];
 
@@ -24,25 +41,105 @@ function StepBar({ status }: { status: string }) {
   return (
     <div className="flex items-center gap-1 w-full">
       {STATUS_STEPS.map((s, i) => (
-        <React.Fragment key={s}>
-          <div className={cn(
-            "h-1 flex-1 rounded-full transition-all duration-500",
-            i < idx  ? "bg-gold" :
-            i === idx ? "bg-gold/70" : "bg-muted"
-          )} />
-        </React.Fragment>
+        <div key={s} className={cn("h-1 flex-1 rounded-full transition-all duration-500",
+          i < idx  ? "bg-gold" : i === idx ? "bg-gold/70" : "bg-muted")} />
       ))}
     </div>
   );
 }
 
-function WoCard({ order, onComplete, canAct }: { order: any; onComplete: (id: number) => void; canAct: boolean }) {
+function RepairTechPanel() {
+  return (
+    <div className="space-y-4 pt-2">
+      {/* AI Damage Diagnostics */}
+      <div>
+        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">AI Damage Diagnostics</p>
+        <div className="grid grid-cols-3 gap-2">
+          {AI_DIAG_TOOLS.map(t => (
+            <div key={t.name} className={cn("p-2.5 rounded-xl border text-center", t.bg, t.border)}>
+              <p className={cn("text-[11px] font-bold leading-tight", t.color)}>{t.name}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">{t.subtitle}</p>
+              <div className="mt-2">
+                <div className="h-1 rounded-full bg-white/[0.06] overflow-hidden">
+                  <div className={cn("h-full rounded-full", t.bg.replace("/10","/60"))} style={{ width: `${t.confidence}%` }} />
+                </div>
+                <p className={cn("text-[11px] font-bold mt-1", t.color)}>{t.confidence}% confidence</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Frame Measurement */}
+      <div>
+        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Frame Measurement & Alignment</p>
+        <div className="grid grid-cols-3 gap-2">
+          {FRAME_TOOLS.map(t => {
+            const Icon = t.icon;
+            return (
+              <div key={t.name} className={cn("p-2.5 rounded-xl border flex flex-col items-center text-center gap-1.5", t.bg, t.border)}>
+                <div className={cn("w-6 h-6 rounded-lg flex items-center justify-center", t.bg)}>
+                  <Icon className={cn("w-3.5 h-3.5", t.color)} />
+                </div>
+                <p className={cn("text-[11px] font-bold leading-tight", t.color)}>{t.name}</p>
+                <span className={cn("text-[10px] font-semibold", t.color)}>{t.status}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ADAS Calibration */}
+      <div>
+        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">ADAS / Autopilot Calibration</p>
+        <div className="grid grid-cols-2 gap-1.5">
+          {ADAS_SENSORS.map(s => (
+            <div key={s.sensor} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-muted/20 border border-border/30">
+              <span className="text-[11px] text-foreground truncate pr-1">{s.sensor}</span>
+              <span className={cn("text-[10px] font-bold flex-shrink-0",
+                s.status === "calibrated"    ? "text-emerald-400" :
+                s.status === "pending"       ? "text-gold" :
+                                               "text-muted-foreground"
+              )}>
+                {s.status === "calibrated" ? "✓ Done" : s.status === "pending" ? "Pending" : "N/A"}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Materials & Techniques */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Repair Materials</p>
+          <div className="flex flex-wrap gap-1">
+            {REPAIR_MATERIALS.map(m => (
+              <span key={m} className="text-[10px] px-2 py-0.5 rounded-full border border-gold/25 text-gold/80 bg-gold/5">{m}</span>
+            ))}
+          </div>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Techniques</p>
+          <div className="flex flex-wrap gap-1">
+            {REPAIR_TECHNIQUES.map(t => (
+              <span key={t} className="text-[10px] px-2 py-0.5 rounded-full border border-white/10 text-white/50 bg-white/[0.04]">{t}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WoCard({ order, onComplete, canAct, isShop }: { order: any; onComplete: (id: number) => void; canAct: boolean; isShop: boolean }) {
+  const [techOpen, setTechOpen] = useState(false);
   const laborCost = (order.laborHours ?? 0) * (order.laborRate ?? 185);
-  const parts = order.partsTotal ?? 0;
-  const total = order.totalCost ?? (laborCost + parts);
+  const parts  = order.partsTotal ?? 0;
+  const total  = order.totalCost ?? (laborCost + parts);
 
   return (
     <Card variant={order.status === "completed" ? "default" : "gold"} className="overflow-hidden">
+      {/* Header */}
       <div className="px-5 pt-5 pb-3 border-b border-border/50">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -54,11 +151,10 @@ function WoCard({ order, onComplete, canAct }: { order: any; onComplete: (id: nu
           </div>
           <StatusBadge status={order.status} />
         </div>
-        <div className="mt-3">
-          <StepBar status={order.status} />
-        </div>
+        <div className="mt-3"><StepBar status={order.status} /></div>
       </div>
 
+      {/* Body */}
       <CardContent className="space-y-4">
         <p className="text-sm text-foreground leading-relaxed">{order.description}</p>
 
@@ -86,7 +182,7 @@ function WoCard({ order, onComplete, canAct }: { order: any; onComplete: (id: nu
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Clock className="w-3.5 h-3.5 flex-shrink-0" />
             <span>Started: {format(new Date(order.startDate), "MMM d, yyyy")}</span>
-            {order.completionDate && <><span>·</span><span>Completed: {format(new Date(order.completionDate), "MMM d, yyyy")}</span></>}
+            {order.completionDate && <><span>·</span><span>Est. complete: {format(new Date(order.completionDate), "MMM d, yyyy")}</span></>}
           </div>
         )}
 
@@ -96,14 +192,46 @@ function WoCard({ order, onComplete, canAct }: { order: any; onComplete: (id: nu
           </div>
         )}
 
-        {/* ADAS alert for Tesla */}
-        {order.status === "in-progress" && (
+        {/* ADAS warning banner */}
+        {["in-progress","assigned"].includes(order.status) && (
           <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-500/8 border border-amber-500/20">
             <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-xs font-semibold text-amber-300">ADAS Calibration Required</p>
-              <p className="text-[11px] text-amber-300/70 mt-0.5">Autopilot cameras must be recalibrated after structural repair per Tesla service guidelines.</p>
+              <p className="text-[11px] text-amber-300/70 mt-0.5">Autopilot cameras must be recalibrated after structural repair per Tesla certified guidelines.</p>
             </div>
+          </div>
+        )}
+
+        {/* Repair Technology toggle — shop/admin only */}
+        {isShop && (
+          <div>
+            <button
+              onClick={() => setTechOpen(t => !t)}
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-gold/5 hover:bg-gold/10 border border-gold/15 hover:border-gold/25 transition-all duration-200"
+            >
+              <div className="flex items-center gap-2">
+                <Cpu className="w-3.5 h-3.5 text-gold" />
+                <span className="text-xs font-semibold text-gold">AI Repair Technology</span>
+                <span className="badge badge-gold text-[10px] py-0 px-2">Tesla Certified</span>
+              </div>
+              {techOpen ? <ChevronUp className="w-3.5 h-3.5 text-gold" /> : <ChevronDown className="w-3.5 h-3.5 text-gold/60" />}
+            </button>
+            <AnimatePresence>
+              {techOpen && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="overflow-hidden mt-2"
+                >
+                  <div className="p-3 rounded-xl bg-muted/15 border border-border/40">
+                    <RepairTechPanel />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         )}
       </CardContent>
@@ -111,10 +239,10 @@ function WoCard({ order, onComplete, canAct }: { order: any; onComplete: (id: nu
       {canAct && order.status !== "completed" && order.status !== "cancelled" && (
         <CardFooter className="flex items-center justify-between gap-3">
           {order.status === "assigned" && (
-            <Button size="sm" variant="outline" onClick={() => {}}>Start Repair</Button>
+            <Button size="sm" variant="outline">Start Repair</Button>
           )}
           {order.status === "in-progress" && (
-            <Button size="sm" variant="outline" onClick={() => {}}>Awaiting Parts</Button>
+            <Button size="sm" variant="outline">Awaiting Parts</Button>
           )}
           <Button size="sm" className="ml-auto" onClick={() => onComplete(order.id)}>
             <CheckCircle className="w-3.5 h-3.5" /> Complete
@@ -134,9 +262,12 @@ export default function WorkOrders() {
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({ vehicleId: "", description: "", laborHours: "", partsTotal: "", startDate: "" });
+  const [activeTab, setActiveTab] = useState<"all" | "active" | "pending" | "completed">("all");
 
-  const canCreate = user?.role === "shop" || user?.role === "admin";
-  const canAct    = user?.role === "shop" || user?.role === "admin";
+  const role     = user?.role ?? "owner";
+  const isShop   = role === "shop" || role === "admin";
+  const canCreate = isShop;
+  const canAct    = isShop;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -159,12 +290,28 @@ export default function WorkOrders() {
     });
   };
 
+  const filtered = orders?.filter(o => {
+    if (activeTab === "all")       return true;
+    if (activeTab === "active")    return ["assigned","in-progress","awaiting-parts"].includes(o.status);
+    if (activeTab === "pending")   return o.status === "pending";
+    if (activeTab === "completed") return o.status === "completed";
+    return true;
+  }) ?? [];
+
   const active    = orders?.filter(o => ["assigned","in-progress","awaiting-parts"].includes(o.status)).length ?? 0;
   const completed = orders?.filter(o => o.status === "completed").length ?? 0;
   const totalRev  = orders?.filter(o => o.status === "completed").reduce((a, o) => a + (o.totalCost ?? 0), 0) ?? 0;
 
+  const tabs = [
+    { key: "all",       label: "All Orders",  count: orders?.length ?? 0 },
+    { key: "active",    label: "In Progress", count: active },
+    { key: "pending",   label: "Pending",     count: orders?.filter(o => o.status === "pending").length ?? 0 },
+    { key: "completed", label: "Completed",   count: completed },
+  ] as const;
+
   return (
     <div className="space-y-7">
+      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Shop Management</p>
@@ -174,47 +321,46 @@ export default function WorkOrders() {
         {canCreate && <Button onClick={() => setIsModalOpen(true)}><Plus className="w-4 h-4" /> New Work Order</Button>}
       </div>
 
+      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="Total Orders"   value={orders?.length ?? 0} icon={Wrench}    color="gold" />
-        <StatCard label="Active"         value={active}              icon={Activity}  color="amber" />
+        <StatCard label="Total Orders"   value={orders?.length ?? 0} icon={Wrench}      color="gold" />
+        <StatCard label="Active"         value={active}              icon={Activity}    color="amber" />
         <StatCard label="Completed"      value={completed}           icon={CheckCircle} color="green" />
         <StatCard label="Revenue"        value={`$${totalRev.toLocaleString()}`} icon={DollarSign} color="blue" />
       </div>
 
-      {/* Diagnostic tool panel — shop only */}
-      {(user?.role === "shop" || user?.role === "admin") && (
-        <div>
-          <SectionHeader title="Diagnostic & Measurement Tools" icon={Cpu} />
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
-            {DIAG_TOOLS.map((t, i) => (
-              <div key={i} className={cn("card-4d p-3 text-center cursor-default", t.status === "needed" && "border-amber-500/25")}>
-                <div className={cn("w-8 h-8 rounded-xl mx-auto mb-2 flex items-center justify-center", t.bg)}>
-                  <t.icon className={cn("w-4 h-4", t.color)} />
-                </div>
-                <p className="text-[10px] font-bold text-foreground leading-tight">{t.name}</p>
-                <p className={cn("text-[10px] mt-1 font-semibold capitalize", t.status === "active" ? "text-emerald-400" : t.status === "needed" ? "text-amber-400" : "text-muted-foreground")}>
-                  {t.status}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Tabs */}
+      <div className="flex gap-1 p-1 rounded-xl bg-muted/30 border border-border/40 w-fit">
+        {tabs.map(t => (
+          <button key={t.key} onClick={() => setActiveTab(t.key)}
+            className={cn("flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold transition-all duration-200",
+              activeTab === t.key ? "bg-card text-foreground shadow-sm border border-border/60" : "text-muted-foreground hover:text-foreground")}>
+            {t.label}
+            <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded-full",
+              activeTab === t.key ? "bg-gold/20 text-gold" : "bg-muted/40 text-muted-foreground")}>
+              {t.count}
+            </span>
+          </button>
+        ))}
+      </div>
 
+      {/* Cards */}
       {isLoading ? (
         <div className="grid md:grid-cols-2 gap-4">{Array.from({ length: 2 }).map((_, i) => <SkeletonCard key={i} />)}</div>
-      ) : !orders?.length ? (
-        <Card><EmptyState icon={Wrench} title="No work orders" description="Create a work order to begin tracking a repair." action={canCreate && <Button size="sm" onClick={() => setIsModalOpen(true)}><Plus className="w-3.5 h-3.5" /> New</Button>} /></Card>
+      ) : !filtered.length ? (
+        <Card><EmptyState icon={Wrench} title="No work orders" description={`No ${activeTab === "all" ? "" : activeTab + " "}work orders found.`}
+          action={canCreate && <Button size="sm" onClick={() => setIsModalOpen(true)}><Plus className="w-3.5 h-3.5" /> New</Button>} /></Card>
       ) : (
         <div className="grid md:grid-cols-2 gap-4">
-          {orders.map((order, i) => (
+          {filtered.map((order, i) => (
             <motion.div key={order.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}>
-              <WoCard order={order} onComplete={handleComplete} canAct={canAct} />
+              <WoCard order={order} onComplete={handleComplete} canAct={canAct} isShop={isShop} />
             </motion.div>
           ))}
         </div>
       )}
 
+      {/* Create modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create Work Order">
         <form onSubmit={handleSubmit} className="space-y-4">
           <FormField label="Vehicle">

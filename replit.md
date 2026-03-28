@@ -55,7 +55,17 @@ Multi-sided platform for Tesla vehicle owners. CIECA/BMS-inspired insurance inte
 - `rental@alset.com` — Rental Company portal
 - `admin@alset.com` — Admin (full access)
 
-**Portals**: Dashboard, Vehicles, Insurance Claims, Work Orders, Towing Jobs, Loaner/Rental
+**Portals** (9 pages total):
+- `Dashboard` — role-specific stats + quick actions
+- `My Vehicles` — Tesla registry + ADAS status (owner/admin)
+- `Insurance Claims` — CIECA/BMS workflow, message threads, approve/deny (owner, insurer, admin)
+- `Work Orders` — Tesla repair mgmt with expandable AI tech panel (Tractable AI, Tchek AI Vision, UVeye, Celette NAJA 3D, Car-O-Tronic Vision2, ADAS calibration grid) (owner, shop, admin)
+- `Towing & Dispatch` — EV tow dispatch with live status strips (owner, towing, admin)
+- `Loaners & Rentals` — Insurance-covered rental bookings (owner, rental, admin)
+- `Accounting` — Revenue, insurance settlement, rental income tables + breakdown charts (shop, insurer, rental, admin)
+- `My Portal` — Owner customer portal: service timeline, tow status, loaner status, billing summary (owner, admin)
+
+**UI Design**: 4D gold/black luxury theme — `card-4d`, `card-gold`, `text-gradient-gold`, gold badge variants, `btn-gold`, `field-input`, ambient glow, Inter + Space Grotesk fonts. CSS in `artifacts/alset-web/src/index.css`. Reusable components in `artifacts/alset-web/src/components/ui-elements.tsx`.
 
 **API routes** (all under `/api/alset/`):
 - `POST /auth/login`, `GET /auth/me`

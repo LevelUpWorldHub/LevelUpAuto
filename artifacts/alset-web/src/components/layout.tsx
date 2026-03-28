@@ -5,26 +5,28 @@ import { useAuth } from "@/lib/auth";
 import {
   LayoutDashboard, Car, FileText, Wrench, Truck, CalendarDays,
   LogOut, ChevronLeft, ChevronRight, Bell, Settings, Hexagon,
-  Shield, User, Building2
+  Shield, User, Building2, Receipt, UserCircle
 } from "lucide-react";
 import { cn } from "./ui-elements";
 
 const NAV_ITEMS = [
-  { path: "/dashboard",   label: "Dashboard",         icon: LayoutDashboard, roles: ["owner","shop","insurer","towing","rental","admin"] },
-  { path: "/vehicles",    label: "My Vehicles",        icon: Car,             roles: ["owner","admin"] },
-  { path: "/claims",      label: "Insurance Claims",   icon: FileText,        roles: ["owner","insurer","admin"] },
-  { path: "/work-orders", label: "Work Orders",        icon: Wrench,          roles: ["owner","shop","admin"] },
-  { path: "/towing",      label: "Towing & Dispatch",  icon: Truck,           roles: ["owner","towing","admin"] },
-  { path: "/rentals",     label: "Loaners & Rentals",  icon: CalendarDays,    roles: ["owner","rental","admin"] },
+  { path: "/dashboard",       label: "Dashboard",         icon: LayoutDashboard, roles: ["owner","shop","insurer","towing","rental","admin"] },
+  { path: "/vehicles",        label: "My Vehicles",        icon: Car,             roles: ["owner","admin"] },
+  { path: "/claims",          label: "Insurance Claims",   icon: FileText,        roles: ["owner","insurer","admin"] },
+  { path: "/work-orders",     label: "Work Orders",        icon: Wrench,          roles: ["owner","shop","admin"] },
+  { path: "/towing",          label: "Towing & Dispatch",  icon: Truck,           roles: ["owner","towing","admin"] },
+  { path: "/rentals",         label: "Loaners & Rentals",  icon: CalendarDays,    roles: ["owner","rental","admin"] },
+  { path: "/accounting",      label: "Accounting",         icon: Receipt,         roles: ["shop","insurer","rental","admin"] },
+  { path: "/customer-portal", label: "My Portal",          icon: UserCircle,      roles: ["owner","admin"] },
 ];
 
 const ROLE_CONFIG: Record<string, { label: string; Icon: React.ComponentType<any>; color: string }> = {
-  owner:   { label: "Tesla Owner",      Icon: User,      color: "text-gold" },
-  shop:    { label: "Repair Shop",      Icon: Wrench,    color: "text-blue-400" },
-  insurer: { label: "Insurance",        Icon: Shield,    color: "text-emerald-400" },
-  towing:  { label: "Towing",           Icon: Truck,     color: "text-amber-400" },
-  rental:  { label: "Rental Co.",       Icon: CalendarDays, color: "text-purple-400" },
-  admin:   { label: "Administrator",    Icon: Building2, color: "text-red-400" },
+  owner:   { label: "Tesla Owner",      Icon: User,        color: "text-gold" },
+  shop:    { label: "Repair Shop",      Icon: Wrench,      color: "text-blue-400" },
+  insurer: { label: "Insurance",        Icon: Shield,      color: "text-emerald-400" },
+  towing:  { label: "Towing",           Icon: Truck,       color: "text-amber-400" },
+  rental:  { label: "Rental Co.",       Icon: CalendarDays,color: "text-purple-400" },
+  admin:   { label: "Administrator",    Icon: Building2,   color: "text-red-400" },
 };
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -68,7 +70,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             const isActive = location === item.path || location.startsWith(item.path + "/");
             return (
               <Link key={item.path} href={item.path}>
-                <div className={cn("nav-link group", isActive && "active")}>
+                <div className={cn("nav-link group relative", isActive && "active")}>
                   <item.icon className={cn("icon flex-shrink-0", isActive ? "text-gold" : "text-muted-foreground group-hover:text-foreground")} />
                   <AnimatePresence>
                     {!collapsed && (
