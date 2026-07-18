@@ -1,0 +1,132 @@
+image: node:20
+
+stages:
+  - install
+  - typecheck
+  - build
+  - security
+  - mobile
+
+variables:
+  PNPM_VERSION: "9"
+
+.pnpm-setup: &pnpm-setup
+  before_script:
+    - corepack enable
+    - corepack prepare pnpm@${PNPM_VERSION} --activate
+    - pnpm install --frozen-lockfile
+
+cache:
+  key:
+    files:
+      - pnpm-lock.yaml
+  paths:
+    - node_modules/
+    - .pnpm-store/
+
+# ── TypeScript ────────────────────────────────────────────────────────────────
+
+typecheck:api-zod:
+  stage: typecheck
+  <<: *pnpm-setup
+  script:
+    - cd lib/api-zod && npx tsc -p tsconfig.json
+  only:
+    - main
+    - merge_requests
+
+typecheck:api-client:
+  stage: typecheck
+  <<: *pnpm-setup
+  script:
+    - cd lib/api-client-react && npx tsc -p tsconfig.json
+  only:
+    - main
+    - merge_requests
+
+typecheck:api-server:
+  stage: typecheck
+  <<: *pnpm-setup
+  script:
+    - cd artifacts/api-server && npx tsc --noEmit
+  only:
+    - main
+    - merge_requests
+
+typecheck:alset-web:
+  stage: typecheck
+  <<: *pnpm-setup
+  script:
+    - cd artifacts/alset-web && npx tsc --noEmit
+  only:
+    - main
+    - merge_requests
+
+# ── Build ─────────────────────────────────────────────────────────────────────
+
+build:levelupauto-web:
+  stage: build
+  <<: *pnpm-setup
+  script:
+    - pnpm --filter @workspace/levelupauto-web run build
+  artifacts:
+    paths:
+      - artifacts/levelupauto-web/dist/
+    expire_in: 7 days
+  only:
+    - main
+
+build:alset-web:
+  stage: build
+  <<: *pnpm-setup
+  script:
+    - pnpm --filter @workspace/alset-web run build
+  artifacts:
+    paths:
+      - artifacts/alset-web/dist/
+    expire_in: 7 days
+  only:
+    - main
+
+# ── Security ──────────────────────────────────────────────────────────────────
+
+security:audit:
+  stage: security
+  <<: *pnpm-setup
+  script:
+    - pnpm audit --audit-level=critical || true
+  allow_failure: true
+  only:
+    - main
+    - schedules
+
+# ── Mobile (EAS) ─────────────────────────────────────────────────────────────
+
+mobile:build-preview:
+  stage: mobile
+  <<: *pnpm-setup
+  script:
+    - npm install -g eas-cli
+    - cd artifacts/levelupauto-mobile
+    - eas build --platform all --profile preview --non-interactive
+  variables:
+    EXPO_TOKEN: $EXPO_TOKEN
+  only:
+    - main
+  when: manual
+
+mobile:build-production:
+  stage: mobile
+  <<: *pnpm-setup
+  script:
+    - npm install -g eas-cli
+    - cd artifacts/levelupauto-mobile
+    - eas build --platform all --profile production --non-interactive
+    - eas submit --platform ios --non-interactive
+    - eas submit --platform android --non-interactive
+  variables:
+    EXPO_TOKEN: $EXPO_TOKEN
+    EXPO_APPLE_APP_SPECIFIC_PASSWORD: $APPLE_APP_SPECIFIC_PASSWORD
+  only:
+    - main
+  when: manual
