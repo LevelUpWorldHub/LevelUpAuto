@@ -73,7 +73,7 @@ router.post("/appointments", async (req, res) => {
         vehicleMake: data.vehicleMake,
         vehicleModel: data.vehicleModel,
         vehicleYear: data.vehicleYear,
-        preferredDate: data.preferredDate,
+        preferredDate: data.preferredDate instanceof Date ? data.preferredDate.toISOString().split("T")[0] : String(data.preferredDate),
         notes: data.notes ?? null,
       })
       .returning();

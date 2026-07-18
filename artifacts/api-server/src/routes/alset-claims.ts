@@ -78,7 +78,7 @@ router.post("/alset/claims", async (req, res) => {
       claimNumber: genClaimNumber(),
       vehicleId: parsed.data.vehicleId,
       ownerId: user.userId,
-      incidentDate: parsed.data.incidentDate,
+      incidentDate: parsed.data.incidentDate instanceof Date ? parsed.data.incidentDate.toISOString().split("T")[0] : String(parsed.data.incidentDate),
       incidentDescription: parsed.data.incidentDescription,
       estimatedDamage: parsed.data.estimatedDamage?.toString() ?? null,
       priority: parsed.data.priority as any,

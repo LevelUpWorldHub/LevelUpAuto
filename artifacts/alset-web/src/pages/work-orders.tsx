@@ -293,7 +293,7 @@ export default function WorkOrders() {
   const filtered = orders?.filter(o => {
     if (activeTab === "all")       return true;
     if (activeTab === "active")    return ["assigned","in-progress","awaiting-parts"].includes(o.status);
-    if (activeTab === "pending")   return o.status === "pending";
+    if (activeTab === "pending")   return o.status === "draft";
     if (activeTab === "completed") return o.status === "completed";
     return true;
   }) ?? [];
@@ -305,7 +305,7 @@ export default function WorkOrders() {
   const tabs = [
     { key: "all",       label: "All Orders",  count: orders?.length ?? 0 },
     { key: "active",    label: "In Progress", count: active },
-    { key: "pending",   label: "Pending",     count: orders?.filter(o => o.status === "pending").length ?? 0 },
+    { key: "pending",   label: "Pending",     count: orders?.filter(o => o.status === "draft").length ?? 0 },
     { key: "completed", label: "Completed",   count: completed },
   ] as const;
 

@@ -77,7 +77,7 @@ router.post("/alset/work-orders", async (req, res) => {
       laborHours: parsed.data.laborHours?.toString() ?? null,
       partsTotal: parsed.data.partsTotal?.toString() ?? null,
       laborRate: parsed.data.laborRate?.toString() ?? null,
-      startDate: parsed.data.startDate ?? null,
+      startDate: parsed.data.startDate instanceof Date ? parsed.data.startDate.toISOString().split("T")[0] : (parsed.data.startDate ?? null),
       notes: parsed.data.notes ?? null,
     }).returning();
     res.status(201).json(await woRow(w));

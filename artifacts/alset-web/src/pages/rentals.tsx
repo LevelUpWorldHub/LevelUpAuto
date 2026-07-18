@@ -130,7 +130,7 @@ export default function Rentals() {
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
-    vehicleType: CreateRentalBodyVehicleType.electric,
+    vehicleType: CreateRentalBodyVehicleType.electric as CreateRentalBodyVehicleType,
     startDate: new Date().toISOString().split("T")[0],
     notes: "",
   });

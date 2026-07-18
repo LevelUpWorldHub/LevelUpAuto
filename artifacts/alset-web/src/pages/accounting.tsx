@@ -46,7 +46,7 @@ export default function Accounting() {
   const claimsPaid     = paidClaims.reduce((s, c) => s + (c.approvedAmount ?? 0), 0);
   const claimsPending  = claims?.filter(c => ["submitted","under-review"].includes(c.status)).length ?? 0;
 
-  const completedRentals = rentals?.filter(r => ["completed","active","confirmed"].includes(r.status)) ?? [];
+  const completedRentals = rentals?.filter(r => ["returned","active","confirmed"].includes(r.status)) ?? [];
   const rentalRevenue = completedRentals.reduce((s, r) => {
     const days = r.startDate && r.endDate ? Math.max(1, differenceInDays(new Date(r.endDate), new Date(r.startDate))) : 1;
     return s + (r.dailyRate ?? 0) * days;
@@ -260,7 +260,7 @@ export default function Accounting() {
                         <tr key={r.id}>
                           <td><span className="font-mono text-purple-400 text-xs font-bold">{r.bookingNumber}</span></td>
                           <td><span className="text-sm text-foreground capitalize">{r.vehicleType}</span></td>
-                          <td><span className={cn("badge text-[10px]", r.status === "completed" ? "badge-green" : r.status === "active" ? "badge-blue" : "badge-silver")}>{r.status}</span></td>
+                          <td><span className={cn("badge text-[10px]", r.status === "returned" ? "badge-green" : r.status === "active" ? "badge-blue" : "badge-silver")}>{r.status}</span></td>
                           <td className="text-xs text-muted-foreground">{r.startDate ? format(new Date(r.startDate), "MMM d") : "—"}</td>
                           <td className="text-xs text-muted-foreground">{r.endDate ? format(new Date(r.endDate), "MMM d") : "—"}</td>
                           <td className="text-sm text-muted-foreground">{days}</td>

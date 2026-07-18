@@ -70,7 +70,7 @@ router.post("/alset/rentals", async (req, res) => {
       claimId: parsed.data.claimId ?? null,
       ownerId: user.userId,
       vehicleType: parsed.data.vehicleType as any,
-      startDate: parsed.data.startDate,
+      startDate: parsed.data.startDate instanceof Date ? parsed.data.startDate.toISOString().split("T")[0] : String(parsed.data.startDate),
       notes: parsed.data.notes ?? null,
     }).returning();
     res.status(201).json(await rentalRow(r));

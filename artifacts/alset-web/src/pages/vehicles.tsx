@@ -32,7 +32,7 @@ export default function Vehicles() {
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
-    model: CreateVehicleBodyModel["Model 3"],
+    model: CreateVehicleBodyModel.Model_3 as CreateVehicleBodyModel,
     year: new Date().getFullYear(),
     vin: "",
     color: "",

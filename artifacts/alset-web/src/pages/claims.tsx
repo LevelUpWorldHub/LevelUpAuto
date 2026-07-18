@@ -233,7 +233,7 @@ export default function Claims() {
     incidentDate: new Date().toISOString().split("T")[0],
     incidentDescription: "",
     estimatedDamage: "",
-    priority: CreateClaimBodyPriority.medium,
+    priority: CreateClaimBodyPriority.medium as CreateClaimBodyPriority,
   });
 
   const role       = user?.role ?? "owner";

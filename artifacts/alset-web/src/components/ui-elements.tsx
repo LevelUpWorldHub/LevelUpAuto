@@ -30,8 +30,13 @@ export function CardHeader({ className, children }: React.HTMLAttributes<HTMLDiv
   return <div className={cn("px-5 py-4 border-b border-border/60 flex items-center justify-between gap-4", className)}>{children}</div>;
 }
 
-export function CardTitle({ className, children }: React.HTMLAttributes<HTMLHeadingElement>) {
-  return <h3 className={cn("text-sm font-display font-semibold tracking-tight text-foreground", className)}>{children}</h3>;
+export function CardTitle({ className, children, icon: Icon }: React.HTMLAttributes<HTMLHeadingElement> & { icon?: React.ComponentType<{ className?: string }> }) {
+  return (
+    <h3 className={cn("flex items-center gap-2 text-sm font-display font-semibold tracking-tight text-foreground", className)}>
+      {Icon && <Icon className="w-4 h-4 text-gold flex-shrink-0" />}
+      {children}
+    </h3>
+  );
 }
 
 export function CardContent({ className, children }: React.HTMLAttributes<HTMLDivElement>) {
@@ -303,7 +308,7 @@ export function GoldLine() {
 
 // ─── Tooltip (basic) ─────────────────────────────────────────────────────────
 
-export function Dot({ color = "gold" }: { color?: "gold" | "green" | "red" | "blue" | "amber" }) {
+export function Dot({ color = "gold", className }: { color?: "gold" | "green" | "red" | "blue" | "amber"; className?: string }) {
   const colors = { gold: "bg-gold", green: "bg-emerald-400", red: "bg-red-400", blue: "bg-blue-400", amber: "bg-amber-400" };
   return <span className={cn("inline-block w-2 h-2 rounded-full flex-shrink-0", colors[color])} />;
 }
