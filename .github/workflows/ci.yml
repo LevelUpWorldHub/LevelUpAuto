@@ -14,12 +14,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: cd lib/db && npx tsc -p tsconfig.json
       - run: cd lib/api-zod && npx tsc -p tsconfig.json
       - run: cd lib/api-client-react && npx tsc -p tsconfig.json
       - run: cd artifacts/api-server && npx tsc --noEmit
@@ -33,7 +34,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -49,7 +50,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version: 20
