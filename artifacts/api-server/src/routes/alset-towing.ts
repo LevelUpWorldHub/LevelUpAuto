@@ -3,15 +3,10 @@ import { db } from "@workspace/db";
 import { alsetTowingTable, alsetVehiclesTable, alsetUsersTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import { CreateTowingJobBody, UpdateTowingJobBody } from "@workspace/api-zod";
-import { verifyToken } from "./alset-auth";
+import { canCreateTowingJob, canUpdateTowingJob, canViewTowingJob, canViewVehicle } from "../lib/alset-access";
+import { getRequestUser } from "../lib/alset-auth";
 
 const router: IRouter = Router();
-
-function getUser(req: any) {
-  const auth = req.headers.authorization ?? "";
-  if (!auth.startsWith("Bearer ")) return null;
-  return verifyToken(auth.slice(7));
-}
 
 function genJobNumber() {
   return "TOW-" + Date.now().toString(36).toUpperCase();
@@ -46,15 +41,12 @@ async function towRow(t: typeof alsetTowingTable.$inferSelect) {
 }
 
 router.get("/alset/towing", async (req, res) => {
-  const user = getUser(req);
+  const user = getRequestUser(req);
   if (!user) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
-    const jobs = user.role === "owner"
-      ? await db.select().from(alsetTowingTable).where(eq(alsetTowingTable.requestedById, user.userId))
-      : user.role === "towing"
-      ? await db.select().from(alsetTowingTable).where(eq(alsetTowingTable.assignedCompanyId, user.userId))
-      : await db.select().from(alsetTowingTable);
-    res.json(await Promise.all(jobs.map(towRow)));
+    const jobs = await db.select().from(alsetTowingTable);
+    const accessibleJobs = jobs.filter(job => canViewTowingJob(user, job));
+    res.json(await Promise.all(accessibleJobs.map(towRow)));
   } catch (err) {
     req.log.error({ err }, "Failed to list towing jobs");
     res.status(500).json({ error: "Failed to list towing jobs" });
@@ -62,15 +54,26 @@ router.get("/alset/towing", async (req, res) => {
 });
 
 router.post("/alset/towing", async (req, res) => {
-  const user = getUser(req);
+  const user = getRequestUser(req);
   if (!user) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!canCreateTowingJob(user)) { res.status(403).json({ error: "Forbidden" }); return; }
   const parsed = CreateTowingJobBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   try {
+    const [vehicle] = await db
+      .select()
+      .from(alsetVehiclesTable)
+      .where(eq(alsetVehiclesTable.id, parsed.data.vehicleId))
+      .limit(1);
+    if (!vehicle) { res.status(404).json({ error: "Vehicle not found" }); return; }
+    if (user.role !== "admin" && !canViewVehicle(user, vehicle)) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
     const [t] = await db.insert(alsetTowingTable).values({
       jobNumber: genJobNumber(),
       vehicleId: parsed.data.vehicleId,
-      requestedById: user.userId,
+      requestedById: user.role === "admin" ? vehicle.ownerId : user.userId,
       pickupAddress: parsed.data.pickupAddress,
       dropoffAddress: parsed.data.dropoffAddress,
       notes: parsed.data.notes ?? null,
@@ -83,14 +86,26 @@ router.post("/alset/towing", async (req, res) => {
 });
 
 router.patch("/alset/towing/:id", async (req, res) => {
-  const user = getUser(req);
+  const user = getRequestUser(req);
   if (!user) { res.status(401).json({ error: "Unauthorized" }); return; }
   const parsed = UpdateTowingJobBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   try {
+    const [currentJob] = await db
+      .select()
+      .from(alsetTowingTable)
+      .where(eq(alsetTowingTable.id, Number(req.params.id)))
+      .limit(1);
+    if (!currentJob) { res.status(404).json({ error: "Towing job not found" }); return; }
+    if (!canUpdateTowingJob(user, currentJob)) { res.status(404).json({ error: "Towing job not found" }); return; }
+
     const updates: any = {};
     if (parsed.data.status) updates.status = parsed.data.status;
-    if (parsed.data.assignedCompanyId !== undefined) updates.assignedCompanyId = parsed.data.assignedCompanyId;
+    if (user.role === "towing" && currentJob.assignedCompanyId === null) {
+      updates.assignedCompanyId = user.userId;
+    } else if (parsed.data.assignedCompanyId !== undefined) {
+      updates.assignedCompanyId = parsed.data.assignedCompanyId;
+    }
     if (parsed.data.driverName !== undefined) updates.driverName = parsed.data.driverName;
     if (parsed.data.estimatedArrival !== undefined) updates.estimatedArrival = parsed.data.estimatedArrival ? new Date(parsed.data.estimatedArrival) : null;
     const [t] = await db.update(alsetTowingTable).set(updates).where(eq(alsetTowingTable.id, Number(req.params.id))).returning();

@@ -3,15 +3,10 @@ import { db } from "@workspace/db";
 import { alsetVehiclesTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import { CreateVehicleBody } from "@workspace/api-zod";
-import { verifyToken } from "./alset-auth";
+import { canCreateVehicle, canViewVehicle } from "../lib/alset-access";
+import { getRequestUser } from "../lib/alset-auth";
 
 const router: IRouter = Router();
-
-function getUser(req: any) {
-  const auth = req.headers.authorization ?? "";
-  if (!auth.startsWith("Bearer ")) return null;
-  return verifyToken(auth.slice(7));
-}
 
 function vehicleRow(v: typeof alsetVehiclesTable.$inferSelect) {
   return {
@@ -28,13 +23,12 @@ function vehicleRow(v: typeof alsetVehiclesTable.$inferSelect) {
 }
 
 router.get("/alset/vehicles", async (req, res) => {
-  const user = getUser(req);
+  const user = getRequestUser(req);
   if (!user) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
-    const vehicles = user.role === "owner"
-      ? await db.select().from(alsetVehiclesTable).where(eq(alsetVehiclesTable.ownerId, user.userId))
-      : await db.select().from(alsetVehiclesTable);
-    res.json(vehicles.map(vehicleRow));
+    const vehicles = await db.select().from(alsetVehiclesTable);
+    const accessibleVehicles = vehicles.filter(vehicle => canViewVehicle(user, vehicle));
+    res.json(accessibleVehicles.map(vehicleRow));
   } catch (err) {
     req.log.error({ err }, "Failed to list vehicles");
     res.status(500).json({ error: "Failed to list vehicles" });
@@ -42,8 +36,9 @@ router.get("/alset/vehicles", async (req, res) => {
 });
 
 router.post("/alset/vehicles", async (req, res) => {
-  const user = getUser(req);
+  const user = getRequestUser(req);
   if (!user) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!canCreateVehicle(user)) { res.status(403).json({ error: "Forbidden" }); return; }
   const parsed = CreateVehicleBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   try {
@@ -64,11 +59,12 @@ router.post("/alset/vehicles", async (req, res) => {
 });
 
 router.get("/alset/vehicles/:id", async (req, res) => {
-  const user = getUser(req);
+  const user = getRequestUser(req);
   if (!user) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
     const [v] = await db.select().from(alsetVehiclesTable).where(eq(alsetVehiclesTable.id, Number(req.params.id))).limit(1);
     if (!v) { res.status(404).json({ error: "Vehicle not found" }); return; }
+    if (!canViewVehicle(user, v)) { res.status(404).json({ error: "Vehicle not found" }); return; }
     res.json(vehicleRow(v));
   } catch (err) {
     req.log.error({ err }, "Failed to get vehicle");

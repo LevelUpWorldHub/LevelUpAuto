@@ -3,15 +3,10 @@ import { db } from "@workspace/db";
 import { alsetClaimsTable, alsetVehiclesTable, alsetUsersTable, alsetOrganizationsTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import { CreateClaimBody, UpdateClaimBody } from "@workspace/api-zod";
-import { verifyToken } from "./alset-auth";
+import { canCreateClaim, canUpdateClaim, canViewClaim, canViewVehicle } from "../lib/alset-access";
+import { getRequestUser } from "../lib/alset-auth";
 
 const router: IRouter = Router();
-
-function getUser(req: any) {
-  const auth = req.headers.authorization ?? "";
-  if (!auth.startsWith("Bearer ")) return null;
-  return verifyToken(auth.slice(7));
-}
 
 function genClaimNumber() {
   return "CLM-" + Date.now().toString(36).toUpperCase();
@@ -52,15 +47,12 @@ async function claimRow(c: typeof alsetClaimsTable.$inferSelect) {
 }
 
 router.get("/alset/claims", async (req, res) => {
-  const user = getUser(req);
+  const user = getRequestUser(req);
   if (!user) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
-    const claims = user.role === "owner"
-      ? await db.select().from(alsetClaimsTable).where(eq(alsetClaimsTable.ownerId, user.userId))
-      : user.role === "insurer"
-      ? await db.select().from(alsetClaimsTable).where(eq(alsetClaimsTable.insurerId, user.userId))
-      : await db.select().from(alsetClaimsTable);
-    const rows = await Promise.all(claims.map(claimRow));
+    const claims = await db.select().from(alsetClaimsTable);
+    const accessibleClaims = claims.filter(claim => canViewClaim(user, claim));
+    const rows = await Promise.all(accessibleClaims.map(claimRow));
     res.json(rows);
   } catch (err) {
     req.log.error({ err }, "Failed to list claims");
@@ -69,15 +61,26 @@ router.get("/alset/claims", async (req, res) => {
 });
 
 router.post("/alset/claims", async (req, res) => {
-  const user = getUser(req);
+  const user = getRequestUser(req);
   if (!user) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!canCreateClaim(user)) { res.status(403).json({ error: "Forbidden" }); return; }
   const parsed = CreateClaimBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   try {
+    const [vehicle] = await db
+      .select()
+      .from(alsetVehiclesTable)
+      .where(eq(alsetVehiclesTable.id, parsed.data.vehicleId))
+      .limit(1);
+    if (!vehicle) { res.status(404).json({ error: "Vehicle not found" }); return; }
+    if (user.role !== "admin" && !canViewVehicle(user, vehicle)) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
     const [c] = await db.insert(alsetClaimsTable).values({
       claimNumber: genClaimNumber(),
       vehicleId: parsed.data.vehicleId,
-      ownerId: user.userId,
+      ownerId: vehicle.ownerId,
       incidentDate: parsed.data.incidentDate instanceof Date ? parsed.data.incidentDate.toISOString().split("T")[0] : String(parsed.data.incidentDate),
       incidentDescription: parsed.data.incidentDescription,
       estimatedDamage: parsed.data.estimatedDamage?.toString() ?? null,
@@ -92,11 +95,12 @@ router.post("/alset/claims", async (req, res) => {
 });
 
 router.get("/alset/claims/:id", async (req, res) => {
-  const user = getUser(req);
+  const user = getRequestUser(req);
   if (!user) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
     const [c] = await db.select().from(alsetClaimsTable).where(eq(alsetClaimsTable.id, Number(req.params.id))).limit(1);
     if (!c) { res.status(404).json({ error: "Claim not found" }); return; }
+    if (!canViewClaim(user, c)) { res.status(404).json({ error: "Claim not found" }); return; }
     res.json(await claimRow(c));
   } catch (err) {
     req.log.error({ err }, "Failed to get claim");
@@ -105,16 +109,28 @@ router.get("/alset/claims/:id", async (req, res) => {
 });
 
 router.patch("/alset/claims/:id", async (req, res) => {
-  const user = getUser(req);
+  const user = getRequestUser(req);
   if (!user) { res.status(401).json({ error: "Unauthorized" }); return; }
   const parsed = UpdateClaimBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   try {
+    const [currentClaim] = await db
+      .select()
+      .from(alsetClaimsTable)
+      .where(eq(alsetClaimsTable.id, Number(req.params.id)))
+      .limit(1);
+    if (!currentClaim) { res.status(404).json({ error: "Claim not found" }); return; }
+    if (!canUpdateClaim(user, currentClaim)) { res.status(404).json({ error: "Claim not found" }); return; }
+
     const updates: any = { updatedAt: new Date() };
     if (parsed.data.status) updates.status = parsed.data.status;
     if (parsed.data.approvedAmount !== undefined) updates.approvedAmount = parsed.data.approvedAmount?.toString() ?? null;
     if (parsed.data.notes !== undefined) updates.notes = parsed.data.notes;
-    if (parsed.data.insurerId !== undefined) updates.insurerId = parsed.data.insurerId;
+    if (user.role === "insurer") {
+      updates.insurerId = user.userId;
+    } else if (parsed.data.insurerId !== undefined) {
+      updates.insurerId = parsed.data.insurerId;
+    }
     if (parsed.data.workOrderId !== undefined) updates.workOrderId = parsed.data.workOrderId;
     const [c] = await db.update(alsetClaimsTable).set(updates).where(eq(alsetClaimsTable.id, Number(req.params.id))).returning();
     if (!c) { res.status(404).json({ error: "Claim not found" }); return; }

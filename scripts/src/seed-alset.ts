@@ -9,11 +9,7 @@ import {
   alsetRentalsTable,
 } from "@workspace/db/schema";
 import { sql } from "drizzle-orm";
-import crypto from "crypto";
-
-function hashPassword(password: string): string {
-  return crypto.createHash("sha256").update(password + "alset-salt").digest("hex");
-}
+import { hashPassword } from "../../artifacts/api-server/src/lib/alset-auth";
 
 async function seed() {
   console.log("Seeding Alset demo data...");

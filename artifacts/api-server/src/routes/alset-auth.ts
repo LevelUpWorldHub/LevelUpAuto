@@ -3,28 +3,15 @@ import { db } from "@workspace/db";
 import { alsetUsersTable, alsetOrganizationsTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import { AlsetLoginBody } from "@workspace/api-zod";
-import crypto from "crypto";
+import {
+  getRequestUser,
+  hashPassword,
+  makeToken,
+  passwordNeedsRehash,
+  verifyPassword,
+} from "../lib/alset-auth";
 
 const router: IRouter = Router();
-
-function hashPassword(password: string): string {
-  return crypto.createHash("sha256").update(password + "alset-salt").digest("hex");
-}
-
-function makeToken(userId: number, role: string): string {
-  const payload = { userId, role, exp: Date.now() + 7 * 24 * 60 * 60 * 1000 };
-  return Buffer.from(JSON.stringify(payload)).toString("base64");
-}
-
-export function verifyToken(token: string): { userId: number; role: string } | null {
-  try {
-    const payload = JSON.parse(Buffer.from(token, "base64").toString("utf8"));
-    if (payload.exp < Date.now()) return null;
-    return { userId: payload.userId, role: payload.role };
-  } catch {
-    return null;
-  }
-}
 
 router.post("/alset/auth/login", async (req, res) => {
   const parsed = AlsetLoginBody.safeParse(req.body);
@@ -42,9 +29,16 @@ router.post("/alset/auth/login", async (req, res) => {
       .where(eq(alsetUsersTable.email, email))
       .limit(1);
 
-    if (!user || user.passwordHash !== hashPassword(password)) {
+    if (!user || !verifyPassword(password, user.passwordHash)) {
       res.status(401).json({ error: "Invalid email or password" });
       return;
+    }
+
+    if (passwordNeedsRehash(user.passwordHash)) {
+      await db
+        .update(alsetUsersTable)
+        .set({ passwordHash: hashPassword(password) })
+        .where(eq(alsetUsersTable.id, user.id));
     }
 
     let organizationName: string | null = null;
@@ -76,15 +70,10 @@ router.post("/alset/auth/login", async (req, res) => {
 });
 
 router.get("/alset/auth/me", async (req, res) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith("Bearer ")) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  const token = authHeader.slice(7);
-  const decoded = verifyToken(token);
+  const decoded = getRequestUser(req);
+
   if (!decoded) {
-    res.status(401).json({ error: "Invalid or expired token" });
+    res.status(401).json({ error: "Unauthorized" });
     return;
   }
 
