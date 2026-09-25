@@ -7,58 +7,101 @@ import {
   alsetVehiclesTable,
   alsetWorkOrdersTable,
 } from "@workspace/db/schema";
-import {
-  canViewClaim,
-  canViewRental,
-  canViewTowingJob,
-  canViewVehicle,
-  canViewWorkOrder,
-} from "../lib/alset-access";
+import { eq, inArray } from "drizzle-orm";
 import { getRequestUser } from "../lib/alset-auth";
 
 const router: IRouter = Router();
 
-router.get("/alset/dashboard/stats", async (req, res) => {
-  try {
-    const user = await getRequestUser(req);
-    if (!user) { res.status(401).json({ error: "Unauthorized" }); return; }
-
-    const [allClaims, allWorkOrders, allTowing, allRentals, allVehicles] = await Promise.all([
+async function loadDashboardData(
+  user: NonNullable<Awaited<ReturnType<typeof getRequestUser>>>,
+) {
+  if (user.role === "admin") {
+    return Promise.all([
       db.select().from(alsetClaimsTable),
       db.select().from(alsetWorkOrdersTable),
       db.select().from(alsetTowingTable),
       db.select().from(alsetRentalsTable),
       db.select().from(alsetVehiclesTable),
     ]);
+  }
 
-    const vehicleOwnerById = new Map(
-      allVehicles.map((vehicle) => [vehicle.id, vehicle.ownerId]),
-    );
-    const claimInsurerById = new Map(
-      allClaims.map((claim) => [claim.id, claim.insurerId ?? null]),
-    );
-    const shopVehicleIds = new Set(
-      allWorkOrders
-        .filter((workOrder) => workOrder.shopId === user.userId)
-        .map((workOrder) => workOrder.vehicleId),
-    );
+  if (user.role === "owner") {
+    const [claims, towingJobs, rentals, vehicles] = await Promise.all([
+      db.select().from(alsetClaimsTable).where(eq(alsetClaimsTable.ownerId, user.userId)),
+      db.select().from(alsetTowingTable).where(eq(alsetTowingTable.requestedById, user.userId)),
+      db.select().from(alsetRentalsTable).where(eq(alsetRentalsTable.ownerId, user.userId)),
+      db.select().from(alsetVehiclesTable).where(eq(alsetVehiclesTable.ownerId, user.userId)),
+    ]);
+    const vehicleIds = vehicles.map((vehicle) => vehicle.id);
+    const workOrders =
+      vehicleIds.length === 0
+        ? []
+        : await db
+            .select()
+            .from(alsetWorkOrdersTable)
+            .where(inArray(alsetWorkOrdersTable.vehicleId, vehicleIds));
 
-    const visibleClaims = allClaims.filter((claim) => canViewClaim(user, claim));
-    const visibleWorkOrders = allWorkOrders.filter((workOrder) =>
-      canViewWorkOrder(user, workOrder, {
-        vehicleOwnerId: vehicleOwnerById.get(workOrder.vehicleId) ?? null,
-        claimInsurerId: workOrder.claimId
-          ? claimInsurerById.get(workOrder.claimId) ?? null
-          : null,
-      }),
-    );
-    const visibleTowing = allTowing.filter((job) => canViewTowingJob(user, job));
-    const visibleRentals = allRentals.filter((rental) => canViewRental(user, rental));
-    const visibleVehicles = allVehicles.filter((vehicle) =>
-      canViewVehicle(user, vehicle, {
-        hasAssignedWorkOrder: shopVehicleIds.has(vehicle.id),
-      }),
-    );
+    return [claims, workOrders, towingJobs, rentals, vehicles] as const;
+  }
+
+  if (user.role === "shop") {
+    const workOrders = await db
+      .select()
+      .from(alsetWorkOrdersTable)
+      .where(eq(alsetWorkOrdersTable.shopId, user.userId));
+    const vehicleIds = [...new Set(workOrders.map((workOrder) => workOrder.vehicleId))];
+    const vehicles =
+      vehicleIds.length === 0
+        ? []
+        : await db
+            .select()
+            .from(alsetVehiclesTable)
+            .where(inArray(alsetVehiclesTable.id, vehicleIds));
+
+    return [[], workOrders, [], [], vehicles] as const;
+  }
+
+  if (user.role === "insurer") {
+    const claims = await db
+      .select()
+      .from(alsetClaimsTable)
+      .where(eq(alsetClaimsTable.insurerId, user.userId));
+    const claimIds = claims.map((claim) => claim.id);
+    const workOrders =
+      claimIds.length === 0
+        ? []
+        : await db
+            .select()
+            .from(alsetWorkOrdersTable)
+            .where(inArray(alsetWorkOrdersTable.claimId, claimIds));
+
+    return [claims, workOrders, [], [], []] as const;
+  }
+
+  if (user.role === "towing") {
+    const towingJobs = await db
+      .select()
+      .from(alsetTowingTable)
+      .where(eq(alsetTowingTable.assignedCompanyId, user.userId));
+
+    return [[], [], towingJobs, [], []] as const;
+  }
+
+  const rentals = await db
+    .select()
+    .from(alsetRentalsTable)
+    .where(eq(alsetRentalsTable.rentalCompanyId, user.userId));
+
+  return [[], [], [], rentals, []] as const;
+}
+
+router.get("/alset/dashboard/stats", async (req, res) => {
+  try {
+    const user = await getRequestUser(req);
+    if (!user) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+    const [visibleClaims, visibleWorkOrders, visibleTowing, visibleRentals, visibleVehicles] =
+      await loadDashboardData(user);
 
     const openClaimStatuses = ["submitted", "under-review"];
     const activeWoStatuses = ["assigned", "in-progress", "awaiting-parts"];

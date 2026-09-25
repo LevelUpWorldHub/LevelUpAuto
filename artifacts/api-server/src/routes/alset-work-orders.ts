@@ -6,7 +6,7 @@ import {
   alsetVehiclesTable,
   alsetUsersTable,
 } from "@workspace/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { CreateWorkOrderBody, UpdateWorkOrderBody } from "@workspace/api-zod";
 import {
   canCreateWorkOrder,
@@ -55,43 +55,87 @@ function workOrderRow(
   };
 }
 
+async function listVisibleWorkOrders(
+  user: NonNullable<Awaited<ReturnType<typeof getRequestUser>>>,
+) {
+  if (user.role === "admin") {
+    return db.select().from(alsetWorkOrdersTable);
+  }
+
+  if (user.role === "shop") {
+    return db
+      .select()
+      .from(alsetWorkOrdersTable)
+      .where(eq(alsetWorkOrdersTable.shopId, user.userId));
+  }
+
+  if (user.role === "owner") {
+    const ownedVehicles = await db
+      .select({ id: alsetVehiclesTable.id })
+      .from(alsetVehiclesTable)
+      .where(eq(alsetVehiclesTable.ownerId, user.userId));
+    const ownedVehicleIds = ownedVehicles.map((vehicle) => vehicle.id);
+
+    if (ownedVehicleIds.length === 0) {
+      return [];
+    }
+
+    return db
+      .select()
+      .from(alsetWorkOrdersTable)
+      .where(inArray(alsetWorkOrdersTable.vehicleId, ownedVehicleIds));
+  }
+
+  if (user.role === "insurer") {
+    const assignedClaims = await db
+      .select({ id: alsetClaimsTable.id })
+      .from(alsetClaimsTable)
+      .where(eq(alsetClaimsTable.insurerId, user.userId));
+    const claimIds = assignedClaims.map((claim) => claim.id);
+
+    if (claimIds.length === 0) {
+      return [];
+    }
+
+    return db
+      .select()
+      .from(alsetWorkOrdersTable)
+      .where(inArray(alsetWorkOrdersTable.claimId, claimIds));
+  }
+
+  return [];
+}
+
 router.get("/alset/work-orders", async (req, res) => {
   try {
     const user = await getRequestUser(req);
     if (!user) { res.status(401).json({ error: "Unauthorized" }); return; }
 
-    const [orders, vehicles, claims, shops] = await Promise.all([
-      db.select().from(alsetWorkOrdersTable),
-      db.select().from(alsetVehiclesTable),
-      db.select().from(alsetClaimsTable),
-      db.select({ id: alsetUsersTable.id, name: alsetUsersTable.name }).from(alsetUsersTable),
+    const orders = await listVisibleWorkOrders(user);
+    const vehicleIds = [...new Set(orders.map((order) => order.vehicleId))];
+    const shopIds = [...new Set(orders.flatMap((order) => (order.shopId ? [order.shopId] : [])))];
+    const [vehicles, shops] = await Promise.all([
+      vehicleIds.length === 0
+        ? Promise.resolve([])
+        : db
+            .select({ id: alsetVehiclesTable.id, vin: alsetVehiclesTable.vin, model: alsetVehiclesTable.model })
+            .from(alsetVehiclesTable)
+            .where(inArray(alsetVehiclesTable.id, vehicleIds)),
+      shopIds.length === 0
+        ? Promise.resolve([])
+        : db
+            .select({ id: alsetUsersTable.id, name: alsetUsersTable.name })
+            .from(alsetUsersTable)
+            .where(inArray(alsetUsersTable.id, shopIds)),
     ]);
 
     const vehiclesById = new Map(
-      vehicles.map((vehicle) => [
-        vehicle.id,
-        { vin: vehicle.vin, model: vehicle.model, ownerId: vehicle.ownerId },
-      ]),
-    );
-    const claimsById = new Map(
-      claims.map((claim) => [
-        claim.id,
-        { insurerId: claim.insurerId ?? null },
-      ]),
+      vehicles.map((vehicle) => [vehicle.id, { vin: vehicle.vin, model: vehicle.model }]),
     );
     const shopsById = new Map(shops.map((shop) => [shop.id, shop.name]));
 
-    const accessibleOrders = orders.filter((order) =>
-      canViewWorkOrder(user, order, {
-        vehicleOwnerId: vehiclesById.get(order.vehicleId)?.ownerId ?? null,
-        claimInsurerId: order.claimId
-          ? claimsById.get(order.claimId)?.insurerId ?? null
-          : null,
-      }),
-    );
-
     res.json(
-      accessibleOrders.map((order) =>
+      orders.map((order) =>
         workOrderRow(order, vehiclesById, shopsById),
       ),
     );
