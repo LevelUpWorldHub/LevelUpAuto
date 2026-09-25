@@ -23,6 +23,14 @@ function genWoNumber() {
   return "WO-" + Date.now().toString(36).toUpperCase();
 }
 
+function formatDateOnly(value: Date): string {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
 function workOrderRow(
   workOrder: typeof alsetWorkOrdersTable.$inferSelect,
   vehiclesById: Map<number, { vin: string; model: (typeof alsetVehiclesTable.$inferSelect)["model"] }>,
@@ -213,7 +221,7 @@ router.post("/alset/work-orders", async (req, res) => {
       laborRate: parsed.data.laborRate?.toString() ?? null,
       startDate:
         parsed.data.startDate instanceof Date
-          ? parsed.data.startDate.toISOString().split("T")[0]
+          ? formatDateOnly(parsed.data.startDate)
           : (parsed.data.startDate ?? null),
       notes: parsed.data.notes ?? null,
     }).returning();

@@ -90,7 +90,10 @@ router.patch("/alset/rentals/:id", async (req, res) => {
     if (!currentRental) { res.status(404).json({ error: "Rental not found" }); return; }
     const isUnassignedSelfClaim =
       user.role === "rental" &&
-      currentRental.rentalCompanyId === null;
+      currentRental.rentalCompanyId === null &&
+      parsed.data.status === undefined &&
+      parsed.data.endDate === undefined &&
+      parsed.data.dailyRate === undefined;
     if (!isUnassignedSelfClaim && !canUpdateRental(user, currentRental)) {
       res.status(404).json({ error: "Rental not found" });
       return;
