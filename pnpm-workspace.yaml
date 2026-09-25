@@ -3,7 +3,6 @@ packages:
   - lib/*
   - lib/integrations/*
   - scripts
-
 autoInstallPeers: false
 
 catalog:

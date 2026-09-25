@@ -12,7 +12,23 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-const basePath = (process.env.BASE_PATH || "/").replace(/\/+$/, "") || "/";
+const basePath = (() => {
+  const normalizedBasePath = (process.env.BASE_PATH ?? "/").trim();
+
+  if (!normalizedBasePath) {
+    return "/";
+  }
+
+  const withoutTrailingSlashes = normalizedBasePath.replace(/\/+$/, "");
+
+  if (!withoutTrailingSlashes) {
+    return "/";
+  }
+
+  return withoutTrailingSlashes.startsWith("/")
+    ? withoutTrailingSlashes
+    : `/${withoutTrailingSlashes}`;
+})();
 
 export default defineConfig({
   base: basePath,

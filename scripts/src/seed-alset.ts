@@ -12,7 +12,10 @@ import { sql } from "drizzle-orm";
 import crypto from "crypto";
 
 function hashPassword(password: string): string {
-  return crypto.createHash("sha256").update(password + "alset-salt").digest("hex");
+  const salt = crypto.randomBytes(16).toString("hex");
+  const derivedKey = crypto.scryptSync(password, salt, 64).toString("hex");
+
+  return `scrypt$${salt}$${derivedKey}`;
 }
 
 async function seed() {

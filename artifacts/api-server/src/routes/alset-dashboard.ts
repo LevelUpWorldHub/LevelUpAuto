@@ -1,19 +1,47 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { alsetClaimsTable, alsetWorkOrdersTable, alsetTowingTable, alsetRentalsTable, alsetVehiclesTable } from "@workspace/db/schema";
-import { eq, count, or } from "drizzle-orm";
-import { verifyToken } from "./alset-auth";
+import { alsetClaimsTable, alsetTowingTable, alsetRentalsTable, alsetVehiclesTable, alsetWorkOrdersTable } from "@workspace/db/schema";
+import { canViewClaim, canViewRental, canViewTowingJob, canViewVehicle } from "../lib/alset-access";
+import { getRequestUser } from "../lib/alset-auth";
+import { eq } from "drizzle-orm";
 
 const router: IRouter = Router();
 
-function getUser(req: any) {
-  const auth = req.headers.authorization ?? "";
-  if (!auth.startsWith("Bearer ")) return null;
-  return verifyToken(auth.slice(7));
+async function canAccessWorkOrder(
+  user: NonNullable<ReturnType<typeof getRequestUser>>,
+  workOrder: typeof alsetWorkOrdersTable.$inferSelect,
+) {
+  if (user.role === "admin") {
+    return true;
+  }
+
+  if (user.role === "shop") {
+    return workOrder.shopId === user.userId;
+  }
+
+  if (user.role === "owner") {
+    const [vehicle] = await db
+      .select({ ownerId: alsetVehiclesTable.ownerId })
+      .from(alsetVehiclesTable)
+      .where(eq(alsetVehiclesTable.id, workOrder.vehicleId))
+      .limit(1);
+    return vehicle?.ownerId === user.userId;
+  }
+
+  if (user.role === "insurer" && workOrder.claimId) {
+    const [claim] = await db
+      .select({ insurerId: alsetClaimsTable.insurerId })
+      .from(alsetClaimsTable)
+      .where(eq(alsetClaimsTable.id, workOrder.claimId))
+      .limit(1);
+    return claim?.insurerId === user.userId;
+  }
+
+  return false;
 }
 
 router.get("/alset/dashboard/stats", async (req, res) => {
-  const user = getUser(req);
+  const user = getRequestUser(req);
   if (!user) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   try {
@@ -24,6 +52,15 @@ router.get("/alset/dashboard/stats", async (req, res) => {
       db.select().from(alsetRentalsTable),
       db.select().from(alsetVehiclesTable),
     ]);
+    const visibleClaims = allClaims.filter(claim => canViewClaim(user, claim));
+    const visibleWorkOrders = (
+      await Promise.all(
+        allWorkOrders.map(async workOrder => ((await canAccessWorkOrder(user, workOrder)) ? workOrder : null)),
+      )
+    ).filter((workOrder): workOrder is typeof alsetWorkOrdersTable.$inferSelect => workOrder !== null);
+    const visibleTowing = allTowing.filter(job => canViewTowingJob(user, job));
+    const visibleRentals = allRentals.filter(rental => canViewRental(user, rental));
+    const visibleVehicles = allVehicles.filter(vehicle => canViewVehicle(user, vehicle));
 
     const openClaimStatuses = ["submitted", "under-review"];
     const activeWoStatuses = ["assigned", "in-progress", "awaiting-parts"];
@@ -31,21 +68,21 @@ router.get("/alset/dashboard/stats", async (req, res) => {
     const activeRentalStatuses = ["confirmed", "active"];
 
     const recentActivity = [
-      ...allClaims.slice(-3).map(c => ({
+      ...visibleClaims.slice(-3).map(c => ({
         id: "claim-" + c.id,
         type: "claim" as const,
         message: `Claim ${c.claimNumber} — ${c.status}`,
         timestamp: c.updatedAt.toISOString(),
         status: c.status,
       })),
-      ...allWorkOrders.slice(-2).map(w => ({
+      ...visibleWorkOrders.slice(-2).map(w => ({
         id: "wo-" + w.id,
         type: "work-order" as const,
         message: `Work Order ${w.workOrderNumber} — ${w.status}`,
         timestamp: w.updatedAt.toISOString(),
         status: w.status,
       })),
-      ...allTowing.slice(-2).map(t => ({
+      ...visibleTowing.slice(-2).map(t => ({
         id: "tow-" + t.id,
         type: "towing" as const,
         message: `Tow Job ${t.jobNumber} — ${t.status}`,
@@ -55,13 +92,13 @@ router.get("/alset/dashboard/stats", async (req, res) => {
     ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 8);
 
     res.json({
-      totalClaims: allClaims.length,
-      openClaims: allClaims.filter(c => openClaimStatuses.includes(c.status)).length,
-      totalWorkOrders: allWorkOrders.length,
-      activeWorkOrders: allWorkOrders.filter(w => activeWoStatuses.includes(w.status)).length,
-      pendingTowingJobs: allTowing.filter(t => pendingTowStatuses.includes(t.status)).length,
-      activeRentals: allRentals.filter(r => activeRentalStatuses.includes(r.status)).length,
-      totalVehicles: allVehicles.length,
+      totalClaims: visibleClaims.length,
+      openClaims: visibleClaims.filter(c => openClaimStatuses.includes(c.status)).length,
+      totalWorkOrders: visibleWorkOrders.length,
+      activeWorkOrders: visibleWorkOrders.filter(w => activeWoStatuses.includes(w.status)).length,
+      pendingTowingJobs: visibleTowing.filter(t => pendingTowStatuses.includes(t.status)).length,
+      activeRentals: visibleRentals.filter(r => activeRentalStatuses.includes(r.status)).length,
+      totalVehicles: visibleVehicles.length,
       recentActivity,
     });
   } catch (err) {
