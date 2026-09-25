@@ -7,7 +7,7 @@ import {
   alsetVehiclesTable,
   alsetWorkOrdersTable,
 } from "@workspace/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, isNull, or } from "drizzle-orm";
 import { getRequestUser } from "../lib/alset-auth";
 
 const router: IRouter = Router();
@@ -82,7 +82,12 @@ async function loadDashboardData(
     const towingJobs = await db
       .select()
       .from(alsetTowingTable)
-      .where(eq(alsetTowingTable.assignedCompanyId, user.userId));
+      .where(
+        or(
+          eq(alsetTowingTable.assignedCompanyId, user.userId),
+          isNull(alsetTowingTable.assignedCompanyId),
+        ),
+      );
 
     return [[], [], towingJobs, [], []] as const;
   }
@@ -90,7 +95,12 @@ async function loadDashboardData(
   const rentals = await db
     .select()
     .from(alsetRentalsTable)
-    .where(eq(alsetRentalsTable.rentalCompanyId, user.userId));
+    .where(
+      or(
+        eq(alsetRentalsTable.rentalCompanyId, user.userId),
+        isNull(alsetRentalsTable.rentalCompanyId),
+      ),
+    );
 
   return [[], [], [], rentals, []] as const;
 }

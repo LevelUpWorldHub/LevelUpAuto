@@ -88,12 +88,19 @@ router.patch("/alset/rentals/:id", async (req, res) => {
       .where(eq(alsetRentalsTable.id, Number(req.params.id)))
       .limit(1);
     if (!currentRental) { res.status(404).json({ error: "Rental not found" }); return; }
-    if (!canUpdateRental(user, currentRental)) { res.status(404).json({ error: "Rental not found" }); return; }
+    const isUnassignedSelfClaim =
+      user.role === "rental" &&
+      currentRental.rentalCompanyId === null;
+    if (!isUnassignedSelfClaim && !canUpdateRental(user, currentRental)) {
+      res.status(404).json({ error: "Rental not found" });
+      return;
+    }
 
     const updates: any = {};
     if (parsed.data.status) updates.status = parsed.data.status;
     if (parsed.data.endDate !== undefined) updates.endDate = parsed.data.endDate;
     if (parsed.data.dailyRate !== undefined) updates.dailyRate = parsed.data.dailyRate?.toString() ?? null;
+    if (isUnassignedSelfClaim) updates.rentalCompanyId = user.userId;
     const [r] = await db.update(alsetRentalsTable).set(updates).where(eq(alsetRentalsTable.id, Number(req.params.id))).returning();
     if (!r) { res.status(404).json({ error: "Rental not found" }); return; }
     res.json(await rentalRow(r));

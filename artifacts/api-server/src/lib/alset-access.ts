@@ -83,7 +83,9 @@ export function canViewTowingJob(
   return (
     user.role === "admin" ||
     (user.role === "owner" && towingJob.requestedById === user.userId) ||
-    (user.role === "towing" && towingJob.assignedCompanyId === user.userId)
+    (user.role === "towing" &&
+      (towingJob.assignedCompanyId === null ||
+        towingJob.assignedCompanyId === user.userId))
   );
 }
 
@@ -108,7 +110,9 @@ export function canViewRental(
   return (
     user.role === "admin" ||
     (user.role === "owner" && rental.ownerId === user.userId) ||
-    (user.role === "rental" && rental.rentalCompanyId === user.userId)
+    (user.role === "rental" &&
+      (rental.rentalCompanyId === null ||
+        rental.rentalCompanyId === user.userId))
   );
 }
 
