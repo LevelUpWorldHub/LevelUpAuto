@@ -13,7 +13,9 @@ export interface AlsetSession {
   role: AlsetRole;
 }
 
-const LEGACY_PASSWORD_SALT = "alset-salt";
+const LEGACY_DEMO_PASSWORD = "demo123";
+const LEGACY_DEMO_PASSWORD_HASH =
+  "178dc0437010df070293ea9bd2ef50922d85fe94cc7466fac40fc7545dcae1ee";
 const PASSWORD_HASH_PREFIX = "scrypt";
 const PASSWORD_KEY_LENGTH = 64;
 const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -32,13 +34,6 @@ function getTokenSecret(): string {
   }
 
   return secret;
-}
-
-function legacyHashPassword(password: string): string {
-  return crypto
-    .createHash("sha256")
-    .update(password + LEGACY_PASSWORD_SALT)
-    .digest("hex");
 }
 
 function timingSafeEqualText(left: string, right: string): boolean {
@@ -82,7 +77,10 @@ export function verifyPassword(password: string, storedHash: string): boolean {
     return timingSafeEqualText(expectedHash, derivedKey);
   }
 
-  return timingSafeEqualText(storedHash, legacyHashPassword(password));
+  return (
+    timingSafeEqualText(storedHash, LEGACY_DEMO_PASSWORD_HASH) &&
+    timingSafeEqualText(password, LEGACY_DEMO_PASSWORD)
+  );
 }
 
 export function passwordNeedsRehash(storedHash: string): boolean {
