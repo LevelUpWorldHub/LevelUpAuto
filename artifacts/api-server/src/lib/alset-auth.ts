@@ -183,6 +183,10 @@ export async function getRequestUser(req: {
     return null;
   }
 
+  if (user.role !== session.role) {
+    return null;
+  }
+
   return {
     userId: user.id,
     role: user.role,
